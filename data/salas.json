@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "nombre": "Teatro Flores",
+    "capacidad": 1874,
+    "direccion": "Av. Rivadavia 7806",
+    "estado": "ACTIVA"
+  },
+  {
+    "id": 2,
+    "nombre": "Teatro Vorterix",
+    "capacidad": 1500,
+    "direccion": "Av. Federico Lacroze 3455",
+    "estado": "ACTIVA"
+  },
+  {
+    "id": 3,
+    "nombre": "Hipodromo de Palermo",
+    "capacidad": 8600,
+    "direccion": "Av. Bernabe Marquez 700",
+    "estado": "ACTIVA"
+  },
+  {
+    "id": 4,
+    "nombre": "Estadio Monumental",
+    "capacidad": 65500,
+    "direccion": "Av. Figueroa Alcorta 7597",
+    "estado": "ACTIVA"
+  }
+]

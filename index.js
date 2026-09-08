@@ -12,10 +12,11 @@ app.use(express.json());
 
 const clientesRoutes = require('./routes/clientes');
 
-
+const salasRoutes = require('./routes/salasRoutes');
 
 app.use('/clientes', clientesRoutes);
 
+app.use('/salas', salasRoutes);
 
 // manejo de error de ruta no encontrada
 app.use((req, res) => {
