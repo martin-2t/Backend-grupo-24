@@ -12,9 +12,13 @@ app.use(express.json());
 
 const clientesRoutes = require('./routes/clientes');
 
+const entradasRoutes = require('./routes/entradas');
+
 const salasRoutes = require('./routes/salasRoutes');
 
 app.use('/clientes', clientesRoutes);
+
+app.use('/entradas', entradasRoutes);
 
 app.use('/salas', salasRoutes);
 
