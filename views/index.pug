@@ -1,0 +1,35 @@
+extends layout
+
+block content
+  h2 Panel general
+
+  .cards
+    .card
+      div Eventos
+      .num= totalEventos
+    .card
+      div Salas
+      .num= totalSalas
+    .card
+      div Clientes
+      .num= totalClientes
+    .card
+      div Entradas vendidas
+      .num= entradasVendidas
+
+  h2 Próximos eventos
+  if proximos.length === 0
+    p No hay eventos próximos programados.
+  else
+    table
+      thead
+        tr
+          th Evento
+          th Fecha
+          th Precio
+      tbody
+        each evento in proximos
+          tr
+            td= evento.nombre
+            td= new Date(evento.fecha).toLocaleString('es-AR')
+            td= '$' + evento.precio

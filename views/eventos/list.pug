@@ -1,0 +1,25 @@
+extends ../layout
+
+block content
+  h2 Eventos
+  a.btn(href="/panel/eventos/nuevo") + Nuevo evento
+
+  table(style="margin-top:16px")
+    thead
+      tr
+        th Nombre
+        th Sala
+        th Fecha
+        th Precio
+        th Disponibles / Capacidad
+        th Estado
+    tbody
+      each evento in eventos
+        tr
+          td= evento.nombre
+          td= evento.sala
+          td= new Date(evento.fecha).toLocaleString('es-AR')
+          td= '$' + evento.precio
+          td= evento.disponibles + ' / ' + evento.capacidad
+          td
+            span.badge(class=evento.estado)= evento.estado

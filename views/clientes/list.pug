@@ -1,0 +1,19 @@
+extends ../layout
+
+block content
+  h2 Clientes
+
+  table
+    thead
+      tr
+        th Nombre
+        th Apellido
+        th Email
+        th Teléfono
+    tbody
+      each cliente in clientes
+        tr
+          td= cliente.nombre
+          td= cliente.apellido
+          td= cliente.email
+          td= cliente.telefono

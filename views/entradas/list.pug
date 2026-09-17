@@ -1,0 +1,26 @@
+extends ../layout
+
+block content
+  h2 Entradas
+
+  
+  table
+    thead
+      tr
+        th #
+        th Evento
+        th Cliente
+        th Precio
+        th Estado
+    tbody
+      if entradas.length === 0
+        tr
+          td(colspan="5") Todavía no hay entradas cargadas.
+      each entrada in entradas
+        tr
+          td= entrada.id
+          td= entrada.evento
+          td= entrada.cliente
+          td= '$' + entrada.precio
+          td
+            span.badge(class=entrada.estado)= entrada.estado

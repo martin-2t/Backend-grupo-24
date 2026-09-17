@@ -1,0 +1,20 @@
+extends ../layout
+
+block content
+  h2 Salas
+
+  table
+    thead
+      tr
+        th Nombre
+        th Dirección
+        th Capacidad
+        th Estado
+    tbody
+      each sala in salas
+        tr
+          td= sala.nombre
+          td= sala.direccion
+          td= sala.capacidad
+          td
+            span.badge(class=sala.estado)= sala.estado
