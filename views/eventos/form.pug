@@ -1,0 +1,28 @@
+extends ../layout
+
+block content
+  h2 Nuevo evento
+
+  if error
+    .error= error
+
+  form.simple(method="POST" action="/panel/eventos/nuevo")
+    label(for="nombre") Nombre
+    input#nombre(type="text" name="nombre" required)
+
+    label(for="descripcion") Descripción
+    textarea#descripcion(name="descripcion" rows="3")
+
+    label(for="fecha") Fecha y hora
+    input#fecha(type="datetime-local" name="fecha" required)
+
+    label(for="salaId") Sala
+    select#salaId(name="salaId" required)
+      each sala in salas
+        option(value=sala.id)= sala.nombre + ' (capacidad ' + sala.capacidad + ')'
+
+    label(for="precio") Precio
+    input#precio(type="number" name="precio" min="0" step="1" required)
+
+    div(style="margin-top:16px")
+      button.btn(type="submit") Crear evento

@@ -4,7 +4,10 @@ const entradasController = require('../controllers/entradasController');
 
 router.get('/', entradasController.getAllEntradas);
 router.get('/:id', entradasController.getEntradaById);
-router.post('/', entradasController.createEntrada);
+router.post('/', entradasController.crearVenta);
+router.post('/reservar', entradasController.crearReserva);
+router.put('/:id/confirmar', entradasController.confirmarReserva);
+router.put('/:id/cancelar', entradasController.cancelarEntrada);
 router.put('/:id', entradasController.updateEntrada);
 router.delete('/:id', entradasController.deleteEntrada);
 

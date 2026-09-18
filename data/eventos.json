@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "nombre": "Noche de Jazz en Flores",
+    "descripcion": "Ciclo de jazz independiente con bandas locales",
+    "fecha": "2026-10-05T21:00:00",
+    "salaId": 1,
+    "precio": 8500,
+    "estado": "PROGRAMADO"
+  },
+  {
+    "id": 2,
+    "nombre": "Rock Under en Vorterix",
+    "descripcion": "Festival de bandas emergentes de rock",
+    "fecha": "2026-11-14T20:00:00",
+    "salaId": 2,
+    "precio": 12000,
+    "estado": "PROGRAMADO"
+  },
+  {
+    "id": 3,
+    "nombre": "Feria Cultural Palermo",
+    "descripcion": "Exposición y espectáculos al aire libre",
+    "fecha": "2026-08-20T18:00:00",
+    "salaId": 3,
+    "precio": 5000,
+    "estado": "FINALIZADO"
+  },
+  {
+    "id": 4,
+    "nombre": "Recital Solidario Monumental",
+    "descripcion": "Recital a beneficio de centros culturales asociados",
+    "fecha": "2026-12-19T20:30:00",
+    "salaId": 4,
+    "precio": 15000,
+    "estado": "PROGRAMADO"
+  }
+]
