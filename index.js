@@ -3,8 +3,15 @@ const express = require('express');
 
 const app = express();
 
+// middlewares 
+const logger = require('./middleware/logger');
+const notFound = require('./middleware/notFound');
+const errorHandler = require('./middleware/errorHandler');
+
 // puerto
 const PORT = 3000;
+
+app.use(logger);
 
 app.use(express.json());
 
@@ -23,15 +30,11 @@ app.use('/entradas', entradasRoutes);
 app.use('/salas', salasRoutes);
 
 // manejo de error de ruta no encontrada
-app.use((req, res) => {
-  res.status(404).json({ error: 'Recurso no encontrado' });
-});
+app.use(notFound);
 
 // Manejador de errores general
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Error interno del servidor' });
-});
+app.use(errorHandler);
+
 
 // muestra el servidor en el puerto indicado
 app.listen(PORT, () => {
