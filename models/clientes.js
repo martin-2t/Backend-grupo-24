@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const { SOLO_LETRAS, SOLO_DIGITOS, EMAIL, texto } = require('./formatos');
+const entradasModel = require('./entradas');
 
 // Clase que representa a un Cliente. Definimos qué datos tiene cada cliente
 class Cliente {
@@ -62,4 +64,40 @@ function remove(id) {
   return true;
 }
 
-module.exports = { getAll, getById, create, update, remove };
+
+const TELEFONO_MINIMO = 10;
+
+// Qué hace válido a un cliente. Devuelve el motivo del rechazo, o null si está bien.
+function validar({ nombre, apellido, email, telefono }) {
+  const n = texto(nombre);
+  if (!n) return 'El nombre es obligatorio.';
+  if (!SOLO_LETRAS.test(n)) return 'El nombre solo puede tener letras, sin números ni símbolos.';
+
+  const a = texto(apellido);
+  if (!a) return 'El apellido es obligatorio.';
+  if (!SOLO_LETRAS.test(a)) return 'El apellido solo puede tener letras, sin números ni símbolos.';
+
+  const e = texto(email);
+  if (!e) return 'El email es obligatorio.';
+  if (!EMAIL.test(e)) return 'El email no tiene un formato válido.';
+
+  // El teléfono es opcional, pero si lo cargan tiene que ser válido
+  const t = texto(telefono);
+  if (t && !SOLO_DIGITOS.test(t)) return 'El teléfono solo puede tener números, sin letras ni símbolos.';
+  if (t && t.length < TELEFONO_MINIMO) return 'El teléfono debe tener al menos ' + TELEFONO_MINIMO + ' dígitos.';
+
+  return null;
+}
+
+// El borrado de cliente es físico: una entrada sin titular quedaría huérfana
+function tieneEntradasVigentes(id) {
+  return entradasModel
+    .getAllEntradas()
+    .some((e) => e.clienteId === Number(id) && e.estado !== 'CANCELADA');
+}
+
+function entradasDelCliente(id) {
+  return entradasModel.getAllEntradas().filter((e) => e.clienteId === Number(id));
+}
+
+module.exports = { TELEFONO_MINIMO, validar, tieneEntradasVigentes, entradasDelCliente, getAll, getById, create, update, remove };

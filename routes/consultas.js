@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const consultasController = require('../controllers/consultasController');
+const consultasController = require('../controllers/api/consultas');
 
 router.get('/entradas-vendidas/:eventoId', consultasController.entradasVendidas);
 router.get('/entradas-vendidas', consultasController.entradasVendidas);

@@ -2,46 +2,53 @@
 // así que lo que en la API es PUT (finalizar, cancelar, confirmar, baja) acá va por POST.
 const express = require('express');
 const router = express.Router();
-const paginasController = require('../controllers/paginasController');
 
-router.use(paginasController.mensajes);
+const comunes = require('../controllers/paginas/comunes');
+const inicio = require('../controllers/paginas/inicio');
+const eventos = require('../controllers/paginas/eventos');
+const salas = require('../controllers/paginas/salas');
+const clientes = require('../controllers/paginas/clientes');
+const entradas = require('../controllers/paginas/entradas');
+const consultas = require('../controllers/paginas/consultas');
 
-router.get('/', paginasController.inicio);
-router.get('/consultas', paginasController.consultas);
+router.use(comunes.localesComunes);
+
+router.get('/', inicio.mostrar);
+router.get('/consultas', consultas.mostrar);
 
 // Las rutas literales van antes que las de :id para que no las capture
-router.get('/eventos', paginasController.eventosListar);
-router.get('/eventos/nuevo', paginasController.eventoNuevoForm);
-router.post('/eventos/nuevo', paginasController.eventoCrear);
-router.get('/eventos/:id', paginasController.eventoDetalle);
-router.get('/eventos/:id/editar', paginasController.eventoEditarForm);
-router.post('/eventos/:id/editar', paginasController.eventoActualizar);
-router.post('/eventos/:id/finalizar', paginasController.eventoFinalizar);
-router.post('/eventos/:id/cancelar', paginasController.eventoCancelar);
+router.get('/eventos', eventos.listar);
+router.get('/eventos/nuevo', eventos.nuevoForm);
+router.post('/eventos/nuevo', eventos.crear);
+router.get('/eventos/:id', eventos.detalle);
+router.get('/eventos/:id/editar', eventos.editarForm);
+router.post('/eventos/:id/editar', eventos.actualizar);
+router.post('/eventos/:id/finalizar', eventos.finalizar);
+router.post('/eventos/:id/cancelar', eventos.cancelar);
 
-router.get('/salas', paginasController.salasListar);
-router.get('/salas/nueva', paginasController.salaNuevaForm);
-router.post('/salas/nueva', paginasController.salaCrear);
-router.get('/salas/:id', paginasController.salaDetalle);
-router.get('/salas/:id/editar', paginasController.salaEditarForm);
-router.post('/salas/:id/editar', paginasController.salaActualizar);
-router.post('/salas/:id/estado', paginasController.salaCambiarEstado);
+router.get('/salas', salas.listar);
+router.get('/salas/nueva', salas.nuevoForm);
+router.post('/salas/nueva', salas.crear);
+router.get('/salas/:id', salas.detalle);
+router.get('/salas/:id/editar', salas.editarForm);
+router.post('/salas/:id/editar', salas.actualizar);
+router.post('/salas/:id/estado', salas.cambiarEstado);
 
-router.get('/clientes', paginasController.clientesListar);
-router.get('/clientes/nuevo', paginasController.clienteNuevoForm);
-router.post('/clientes/nuevo', paginasController.clienteCrear);
-router.get('/clientes/:id', paginasController.clienteDetalle);
-router.get('/clientes/:id/editar', paginasController.clienteEditarForm);
-router.post('/clientes/:id/editar', paginasController.clienteActualizar);
-router.post('/clientes/:id/eliminar', paginasController.clienteEliminar);
+router.get('/clientes', clientes.listar);
+router.get('/clientes/nuevo', clientes.nuevoForm);
+router.post('/clientes/nuevo', clientes.crear);
+router.get('/clientes/:id', clientes.detalle);
+router.get('/clientes/:id/editar', clientes.editarForm);
+router.post('/clientes/:id/editar', clientes.actualizar);
+router.post('/clientes/:id/eliminar', clientes.eliminar);
 
-router.get('/entradas', paginasController.entradasListar);
-router.get('/entradas/nueva', paginasController.entradaNuevaForm);
-router.post('/entradas/nueva', paginasController.entradaCrear);
-router.get('/entradas/:id', paginasController.entradaDetalle);
-router.post('/entradas/:id/confirmar', paginasController.entradaConfirmar);
-router.post('/entradas/:id/cancelar', paginasController.entradaCancelar);
-router.post('/entradas/:id/precio', paginasController.entradaActualizarPrecio);
-router.post('/entradas/:id/eliminar', paginasController.entradaEliminar);
+router.get('/entradas', entradas.listar);
+router.get('/entradas/nueva', entradas.nuevoForm);
+router.post('/entradas/nueva', entradas.crear);
+router.get('/entradas/:id', entradas.detalle);
+router.post('/entradas/:id/confirmar', entradas.confirmar);
+router.post('/entradas/:id/cancelar', entradas.cancelar);
+router.post('/entradas/:id/precio', entradas.actualizarPrecio);
+router.post('/entradas/:id/eliminar', entradas.eliminar);
 
 module.exports = router;

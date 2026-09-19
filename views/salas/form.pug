@@ -4,8 +4,6 @@ extends ../layout
 block content
   - var s = sala || {}
   - var esEdicion = Boolean(s.id)
-  //- Mismo formato que valida el controller, para que el navegador avise primero
-  - var soloLetras = "[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+([ '-][A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*"
 
   h2= esEdicion ? 'Editar sala' : 'Nueva sala'
 
@@ -14,14 +12,14 @@ block content
 
   form.simple(method="POST" action=accion)
     label(for="nombre") Nombre
-    input#nombre(type="text" name="nombre" value=s.nombre required minlength="4" pattern=soloLetras title="Solo letras, sin números ni símbolos. Mínimo 4 caracteres")
+    input#nombre(type="text" name="nombre" value=s.nombre required minlength=largoMinimo pattern=patronLetras title='Solo letras, sin números ni símbolos. Mínimo ' + largoMinimo + ' caracteres')
 
     label(for="direccion") Dirección
-    input#direccion(type="text" name="direccion" value=s.direccion required minlength="4" title="Mínimo 4 caracteres")
+    input#direccion(type="text" name="direccion" value=s.direccion required minlength=largoMinimo title='Mínimo ' + largoMinimo + ' caracteres')
 
     label(for="capacidad") Capacidad
-    input#capacidad(type="number" name="capacidad" min="10" step="1" value=s.capacidad required title="Número entero, mínimo 10 localidades")
-    p.nota Mínimo 10 localidades. Si la sala ya tiene lugares ocupados, tampoco se puede bajar por debajo de esa cantidad.
+    input#capacidad(type="number" name="capacidad" min=capacidadMinima step="1" value=s.capacidad required title='Número entero, mínimo ' + capacidadMinima + ' localidades')
+    p.nota Mínimo #{capacidadMinima} localidades. Si la sala ya tiene lugares ocupados, tampoco se puede bajar por debajo de esa cantidad.
 
     .barra
       button.btn(type="submit" class=(esEdicion ? 'editar' : ''))= esEdicion ? 'Guardar cambios' : 'Crear sala'

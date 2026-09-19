@@ -1,7 +1,6 @@
 extends ../layout
 
 block content
-  - var vigentes = entradas.filter(function (e) { return e.estado !== 'CANCELADA'; })
 
   .encabezado
     div
@@ -19,7 +18,7 @@ block content
       .num= entradas.length
     .card
       div Vigentes
-      .num= vigentes.length
+      .num= vigentes
 
   h3 Historial de entradas
   if entradas.length === 0

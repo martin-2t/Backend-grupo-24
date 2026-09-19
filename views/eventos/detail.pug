@@ -1,8 +1,7 @@
 extends ../layout
 
 block content
-  //- Cancelar el evento arrastra sus entradas, así que el aviso dice cuántas son
-  - var aArrastrar = entradas.filter(function (e) { return e.estado !== 'CANCELADA'; }).length
+  //- aArrastrar lo calcula el controller: la regla de qué entradas se arrastran es del model
   - var avisoCancelar = '¿Cancelar este evento?'
   if aArrastrar === 1
     - avisoCancelar = '¿Cancelar este evento? También se va a cancelar su entrada vendida o reservada.'

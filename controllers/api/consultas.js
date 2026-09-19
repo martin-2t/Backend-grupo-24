@@ -1,6 +1,6 @@
-const entradasModel = require('../models/entradas');
-const eventosModel = require('../models/eventos');
-const salasModel = require('../models/salas');
+const entradasModel = require('../../models/entradas');
+const eventosModel = require('../../models/eventos');
+const salasModel = require('../../models/salas');
 
 // GET /consultas/entradas-vendidas            -> vendidas por cada evento
 // GET /consultas/entradas-vendidas/:eventoId  -> vendidas de un evento puntual

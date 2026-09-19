@@ -15,7 +15,7 @@ block content
 
   form.simple(method="POST" action=accion)
     label(for="nombre") Nombre
-    input#nombre(type="text" name="nombre" value=e.nombre required minlength="4" title="Mínimo 4 caracteres")
+    input#nombre(type="text" name="nombre" value=e.nombre required minlength=largoMinimo title='Mínimo ' + largoMinimo + ' caracteres')
 
     label(for="descripcion") Descripción
     textarea#descripcion(name="descripcion" rows="3")= e.descripcion
