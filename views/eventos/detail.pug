@@ -1,6 +1,14 @@
 extends ../layout
 
 block content
+  //- Cancelar el evento arrastra sus entradas, así que el aviso dice cuántas son
+  - var aArrastrar = entradas.filter(function (e) { return e.estado !== 'CANCELADA'; }).length
+  - var avisoCancelar = '¿Cancelar este evento?'
+  if aArrastrar === 1
+    - avisoCancelar = '¿Cancelar este evento? También se va a cancelar su entrada vendida o reservada.'
+  else if aArrastrar > 1
+    - avisoCancelar = '¿Cancelar este evento? También se van a cancelar sus ' + aArrastrar + ' entradas vendidas o reservadas.'
+
   .encabezado
     div
       h2= evento.nombre
@@ -15,7 +23,7 @@ block content
         form.enlinea(method="POST" action="/panel/eventos/" + evento.id + "/finalizar" onsubmit="return confirm('¿Finalizar este evento? No va a admitir más ventas.')")
           button.btn.baja(type="submit") Finalizar
       if evento.estado !== 'CANCELADO'
-        form.enlinea(method="POST" action="/panel/eventos/" + evento.id + "/cancelar" onsubmit="return confirm('¿Cancelar este evento?')")
+        form.enlinea(method="POST" action="/panel/eventos/" + evento.id + "/cancelar" onsubmit="return confirm('" + avisoCancelar + "')")
           button.btn.baja(type="submit") Cancelar evento
 
   .cards

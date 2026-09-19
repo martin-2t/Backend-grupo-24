@@ -4,6 +4,8 @@ extends ../layout
 block content
   - var c = cliente || {}
   - var esEdicion = Boolean(c.id)
+  //- Mismo formato que valida el controller, para que el navegador avise primero
+  - var soloLetras = "[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+([ '-][A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*"
 
   h2= esEdicion ? 'Editar cliente' : 'Nuevo cliente'
 
@@ -12,16 +14,17 @@ block content
 
   form.simple(method="POST" action=accion)
     label(for="nombre") Nombre
-    input#nombre(type="text" name="nombre" value=c.nombre required)
+    input#nombre(type="text" name="nombre" value=c.nombre required pattern=soloLetras title="Solo letras, sin números ni símbolos")
 
     label(for="apellido") Apellido
-    input#apellido(type="text" name="apellido" value=c.apellido required)
+    input#apellido(type="text" name="apellido" value=c.apellido required pattern=soloLetras title="Solo letras, sin números ni símbolos")
 
     label(for="email") Email
-    input#email(type="email" name="email" value=c.email required)
+    input#email(type="email" name="email" value=c.email required placeholder="nombre@correo.com")
 
     label(for="telefono") Teléfono
-    input#telefono(type="text" name="telefono" value=c.telefono)
+    input#telefono(type="text" name="telefono" value=c.telefono inputmode="numeric" pattern="[0-9]{10,}" title="Solo números, al menos 10 dígitos" placeholder="1123456789")
+    p.nota Opcional. Si lo cargás, tiene que ser solo números y tener al menos 10 dígitos.
 
     .barra
       button.btn(type="submit" class=(esEdicion ? 'editar' : ''))= esEdicion ? 'Guardar cambios' : 'Crear cliente'

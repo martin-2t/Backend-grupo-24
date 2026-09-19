@@ -59,33 +59,123 @@ function salasElegibles(salaIdActual) {
   return actual ? [...activas, actual] : activas;
 }
 
-// Las validaciones devuelven el mensaje a mostrar, o null si está todo bien
+// Formatos que comparten varios campos. Las mismas expresiones van en el atributo
+// pattern de los inputs, para que el navegador avise antes de mandar el formulario.
+const SOLO_LETRAS = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:[ '-][A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$/;
+const SOLO_DIGITOS = /^[0-9]+$/;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validarEvento({ nombre, fecha, salaId, precio }) {
-  if (!nombre || !String(nombre).trim()) return 'El nombre del evento es obligatorio.';
-  if (!fecha || isNaN(new Date(fecha).getTime())) return 'La fecha es obligatoria y debe ser válida.';
-  if (isNaN(aNumero(salaId)) || !salasModel.getSalaById(salaId)) return 'Elegí una sala existente.';
+const CAPACIDAD_MINIMA = 10;
+const TELEFONO_MINIMO = 10;
+const LARGO_MINIMO = 4;
+
+function texto(valor) {
+  return valor === undefined || valor === null ? '' : String(valor).trim();
+}
+
+// Lugares ocupados del evento más lleno de una sala. Es el piso al que se puede
+// bajar su capacidad sin dejar gente afuera de algo que ya compró.
+function ocupacionMaximaDeSala(salaId) {
+  return eventosModel
+    .getAllEventos()
+    .filter((e) => e.salaId === Number(salaId) && e.estado === 'PROGRAMADO')
+    .reduce((max, e) => Math.max(max, entradasModel.lugaresOcupados(e.id)), 0);
+}
+
+function eventosProgramadosDeSala(salaId) {
+  return eventosModel
+    .getAllEventos()
+    .filter((e) => e.salaId === Number(salaId) && e.estado === 'PROGRAMADO');
+}
+
+// Las validaciones devuelven el mensaje a mostrar, o null si está todo bien.
+// Las de update reciben además el registro actual, porque algunas reglas dependen
+// de lo que ya pasó con ese registro (entradas vendidas, sala original).
+
+function validarEvento({ nombre, fecha, salaId, precio }, eventoActual) {
+  const n = texto(nombre);
+  if (!n) return 'El nombre del evento es obligatorio.';
+  if (n.length < LARGO_MINIMO) return 'El nombre del evento debe tener al menos ' + LARGO_MINIMO + ' caracteres.';
+
+  const f = texto(fecha);
+  if (!f || isNaN(new Date(f).getTime())) return 'La fecha es obligatoria y debe ser válida.';
+  // Un evento nuevo no puede nacer en el pasado. Al editar uno viejo sí se permite,
+  // para poder corregir datos de eventos que ya pasaron.
+  if (!eventoActual && new Date(f) <= new Date()) {
+    return 'La fecha del evento tiene que ser posterior a este momento.';
+  }
+
+  const sala = salasModel.getSalaById(salaId);
+  if (isNaN(aNumero(salaId)) || !sala) return 'Elegí una sala existente.';
+
+  // Se puede conservar una sala dada de baja al editar, pero no mudarse a una
+  const cambiaDeSala = !eventoActual || Number(salaId) !== eventoActual.salaId;
+  if (cambiaDeSala && sala.estado !== 'ACTIVA') {
+    return 'La sala "' + sala.nombre + '" está dada de baja: elegí una activa.';
+  }
+
   const p = aNumero(precio);
   if (isNaN(p) || p < 0) return 'El precio es obligatorio y debe ser un número mayor o igual a cero.';
+
+  // Si mueven el evento a otra sala, tiene que entrar la gente que ya compró
+  if (eventoActual) {
+    const ocupados = entradasModel.lugaresOcupados(eventoActual.id);
+    if (sala.capacidad < ocupados) {
+      return 'La sala "' + sala.nombre + '" tiene capacidad ' + sala.capacidad +
+        ' y este evento ya tiene ' + ocupados + ' lugares ocupados.';
+    }
+  }
+
   return null;
 }
 
-function validarSala({ nombre, capacidad, direccion }) {
-  if (!nombre || !String(nombre).trim()) return 'El nombre de la sala es obligatorio.';
+function validarSala({ nombre, capacidad, direccion }, salaActual) {
+  const n = texto(nombre);
+  if (!n) return 'El nombre de la sala es obligatorio.';
+  if (!SOLO_LETRAS.test(n)) return 'El nombre de la sala solo puede tener letras, sin números ni símbolos.';
+  if (n.length < LARGO_MINIMO) return 'El nombre de la sala debe tener al menos ' + LARGO_MINIMO + ' caracteres.';
+
+  const d = texto(direccion);
+  if (!d) return 'La dirección es obligatoria.';
+  if (d.length < LARGO_MINIMO) return 'La dirección debe tener al menos ' + LARGO_MINIMO + ' caracteres.';
+
   const c = aNumero(capacidad);
-  if (isNaN(c) || c <= 0) return 'La capacidad es obligatoria y debe ser un número mayor a cero.';
-  if (!direccion || !String(direccion).trim()) return 'La dirección es obligatoria.';
+  if (isNaN(c) || !Number.isInteger(c)) return 'La capacidad debe ser un número entero.';
+  if (c < CAPACIDAD_MINIMA) return 'La capacidad no puede ser menor a ' + CAPACIDAD_MINIMA + ' localidades.';
+
+  // Achicar una sala no puede dejar afuera entradas ya vendidas o reservadas
+  if (salaActual) {
+    const ocupados = ocupacionMaximaDeSala(salaActual.id);
+    if (c < ocupados) {
+      return 'No se puede bajar la capacidad a ' + c + ': hay un evento programado con ' +
+        ocupados + ' lugares ya ocupados.';
+    }
+  }
+
   return null;
 }
 
-function validarCliente({ nombre, apellido, email }) {
-  if (!nombre || !String(nombre).trim()) return 'El nombre es obligatorio.';
-  if (!apellido || !String(apellido).trim()) return 'El apellido es obligatorio.';
-  if (!email || !String(email).includes('@')) return 'El email es obligatorio y debe ser válido.';
+function validarCliente({ nombre, apellido, email, telefono }) {
+  const n = texto(nombre);
+  if (!n) return 'El nombre es obligatorio.';
+  if (!SOLO_LETRAS.test(n)) return 'El nombre solo puede tener letras, sin números ni símbolos.';
+
+  const a = texto(apellido);
+  if (!a) return 'El apellido es obligatorio.';
+  if (!SOLO_LETRAS.test(a)) return 'El apellido solo puede tener letras, sin números ni símbolos.';
+
+  const e = texto(email);
+  if (!e) return 'El email es obligatorio.';
+  if (!EMAIL.test(e)) return 'El email no tiene un formato válido.';
+
+  // El teléfono sigue siendo opcional, pero si lo cargan tiene que ser válido
+  const t = texto(telefono);
+  if (t && !SOLO_DIGITOS.test(t)) return 'El teléfono solo puede tener números, sin letras ni símbolos.';
+  if (t && t.length < TELEFONO_MINIMO) return 'El teléfono debe tener al menos ' + TELEFONO_MINIMO + ' dígitos.';
+
   return null;
 }
 
-// Mismas reglas que aplica la API al vender o reservar
 function validarVenta(eventoId, clienteId) {
   const evento = eventosModel.getEventoById(eventoId);
   if (!evento) return { error: 'El evento indicado no existe.' };
@@ -98,6 +188,9 @@ function validarVenta(eventoId, clienteId) {
 
   const sala = salasModel.getSalaById(evento.salaId);
   if (!sala) return { error: 'El evento no tiene una sala válida asociada.' };
+  if (sala.estado !== 'ACTIVA') {
+    return { error: 'La sala "' + sala.nombre + '" está dada de baja: no se pueden vender entradas.' };
+  }
 
   if (entradasModel.lugaresOcupados(eventoId) >= sala.capacidad) {
     return { error: 'No quedan lugares disponibles para este evento.' };
@@ -188,7 +281,7 @@ function eventoActualizar(req, res, next) {
   const evento = eventosModel.getEventoById(req.params.id);
   if (!evento) return next();
 
-  const error = validarEvento(req.body);
+  const error = validarEvento(req.body, evento);
   if (error) {
     return res.status(400).render('eventos/form', {
       titulo: 'Editar ' + evento.nombre,
@@ -230,8 +323,24 @@ function eventoCancelar(req, res, next) {
     return volverConError(res, '/panel/eventos/' + evento.id, 'El evento ya estaba cancelado.');
   }
 
+  // Cancelar el evento arrastra sus entradas: no puede quedar una entrada válida
+  // de algo que no va a suceder. Las que ya estaban canceladas quedan como están.
+  const arrastradas = entradasModel
+    .getEntradasByEvento(evento.id)
+    .filter((e) => e.estado !== 'CANCELADA');
+
+  arrastradas.forEach((e) => entradasModel.updateEntradaById(e.id, { estado: 'CANCELADA' }));
+
   eventosModel.cancelarEvento(evento.id);
-  volver(res, '/panel/eventos/' + evento.id, 'Evento cancelado.');
+
+  let aviso = 'Evento cancelado.';
+  if (arrastradas.length === 1) {
+    aviso = 'Evento cancelado. También se canceló 1 entrada.';
+  } else if (arrastradas.length > 1) {
+    aviso = 'Evento cancelado. También se cancelaron ' + arrastradas.length + ' entradas.';
+  }
+
+  volver(res, '/panel/eventos/' + evento.id, aviso);
 }
 
 function salasListar(req, res) {
@@ -302,7 +411,7 @@ function salaActualizar(req, res, next) {
   const sala = salasModel.getSalaById(req.params.id);
   if (!sala) return next();
 
-  const error = validarSala(req.body);
+  const error = validarSala(req.body, sala);
   if (error) {
     return res.status(400).render('salas/form', {
       titulo: 'Editar ' + sala.nombre,
@@ -321,6 +430,21 @@ function salaActualizar(req, res, next) {
 function salaCambiarEstado(req, res, next) {
   const sala = salasModel.getSalaById(req.params.id);
   if (!sala) return next();
+
+  // Dar de baja una sala con eventos programados dejaría esos eventos sin lugar
+  // real donde ocurrir, así que primero hay que finalizarlos o cancelarlos.
+  if (sala.estado === 'ACTIVA') {
+    const programados = eventosProgramadosDeSala(sala.id);
+    if (programados.length) {
+      return volverConError(
+        res,
+        '/panel/salas/' + sala.id,
+        'No se puede dar de baja: la sala tiene ' + programados.length +
+          (programados.length === 1 ? ' evento programado' : ' eventos programados') +
+          '. Finalizalos o cancelalos primero.'
+      );
+    }
+  }
 
   const actualizada = salasModel.toggleSalaById(sala.id);
   volver(res, '/panel/salas', 'La sala "' + actualizada.nombre + '" ahora está ' + actualizada.estado + '.');

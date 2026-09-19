@@ -5,6 +5,8 @@ block content
   - var e = evento || {}
   - var esEdicion = Boolean(e.id)
   - var valorFecha = e.fecha ? String(e.fecha).slice(0, 16) : ''
+  //- Un evento nuevo no puede quedar en el pasado; al editar uno viejo no ponemos piso
+  - var minFecha = esEdicion ? null : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 
   h2= esEdicion ? 'Editar evento' : 'Nuevo evento'
 
@@ -13,13 +15,13 @@ block content
 
   form.simple(method="POST" action=accion)
     label(for="nombre") Nombre
-    input#nombre(type="text" name="nombre" value=e.nombre required)
+    input#nombre(type="text" name="nombre" value=e.nombre required minlength="4" title="Mínimo 4 caracteres")
 
     label(for="descripcion") Descripción
     textarea#descripcion(name="descripcion" rows="3")= e.descripcion
 
     label(for="fecha") Fecha y hora
-    input#fecha(type="datetime-local" name="fecha" value=valorFecha required)
+    input#fecha(type="datetime-local" name="fecha" value=valorFecha required min=minFecha title="Tiene que ser una fecha futura")
 
     label(for="salaId") Sala
     select#salaId(name="salaId" required)
@@ -30,6 +32,7 @@ block content
 
     label(for="precio") Precio
     input#precio(type="number" name="precio" min="0" step="1" value=e.precio required)
+    p.nota Solo se listan las salas activas. Si el evento ya tiene entradas vendidas, la sala nueva tiene que poder recibirlas.
 
     .barra
       button.btn(type="submit" class=(esEdicion ? 'editar' : ''))= esEdicion ? 'Guardar cambios' : 'Crear evento'
