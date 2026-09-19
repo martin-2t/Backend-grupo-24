@@ -2,9 +2,11 @@ extends ../layout
 
 block content
   h2 Eventos
-  a.btn(href="/panel/eventos/nuevo") + Nuevo evento
 
-  table(style="margin-top:16px")
+  .barra
+    a.btn(href="/panel/eventos/nuevo") + Nuevo evento
+
+  table
     thead
       tr
         th Nombre
@@ -13,13 +15,24 @@ block content
         th Precio
         th Disponibles / Capacidad
         th Estado
+        th Acciones
     tbody
+      if eventos.length === 0
+        tr
+          td.vacio(colspan="7") Todavía no hay eventos cargados.
       each evento in eventos
         tr
-          td= evento.nombre
+          td
+            a(href="/panel/eventos/" + evento.id)= evento.nombre
           td= evento.sala
           td= new Date(evento.fecha).toLocaleString('es-AR')
           td= '$' + evento.precio
           td= evento.disponibles + ' / ' + evento.capacidad
           td
             span.badge(class=evento.estado)= evento.estado
+          td.acciones
+            .grupo
+              a.btn.chico.secundario(href="/panel/eventos/" + evento.id) Ver
+              a.btn.chico.editar(href="/panel/eventos/" + evento.id + "/editar") Editar
+              if evento.estado === 'PROGRAMADO' && evento.disponibles > 0
+                a.btn.chico(href="/panel/entradas/nueva?evento=" + evento.id) Vender

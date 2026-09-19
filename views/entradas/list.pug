@@ -3,7 +3,31 @@ extends ../layout
 block content
   h2 Entradas
 
-  
+  .barra
+    a.btn(href="/panel/entradas/nueva") Vender entrada
+
+  form.filtros(method="GET" action="/panel/entradas")
+    label(for="evento") Evento
+    select#evento(name="evento")
+      option(value="") Todos
+      each evento in eventos
+        option(value=evento.id selected=(filtros.evento === String(evento.id)))= evento.nombre
+
+    label(for="cliente") Cliente
+    select#cliente(name="cliente")
+      option(value="") Todos
+      each cliente in clientes
+        option(value=cliente.id selected=(filtros.cliente === String(cliente.id)))= cliente.nombre + ' ' + cliente.apellido
+
+    label(for="estado") Estado
+    select#estado(name="estado")
+      option(value="") Todos
+      each estado in estados
+        option(value=estado selected=(filtros.estado === estado))= estado
+
+    button.btn.secundario(type="submit") Filtrar
+    a.btn.secundario(href="/panel/entradas") Limpiar
+
   table
     thead
       tr
@@ -12,10 +36,11 @@ block content
         th Cliente
         th Precio
         th Estado
+        th Acciones
     tbody
       if entradas.length === 0
         tr
-          td(colspan="5") Todavía no hay entradas cargadas.
+          td.vacio(colspan="6") No hay entradas que coincidan con el filtro.
       each entrada in entradas
         tr
           td= entrada.id
@@ -24,3 +49,12 @@ block content
           td= '$' + entrada.precio
           td
             span.badge(class=entrada.estado)= entrada.estado
+          td.acciones
+            .grupo
+              a.btn.chico.secundario(href="/panel/entradas/" + entrada.id) Ver
+              if entrada.estado === 'RESERVADA'
+                form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/confirmar")
+                  button.btn.chico(type="submit") Confirmar
+              if entrada.estado !== 'CANCELADA'
+                form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/cancelar" onsubmit="return confirm('¿Cancelar esta entrada? El lugar quedará liberado.')")
+                  button.btn.chico.baja(type="submit") Cancelar

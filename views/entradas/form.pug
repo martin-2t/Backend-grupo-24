@@ -1,0 +1,40 @@
+extends ../layout
+
+//- Un form con dos botones: el que se apreta manda "accion" (vender o reservar)
+block content
+  - var v = valores || {}
+  - var eventoElegido = String(v.eventoId || seleccionado || '')
+
+  h2 Vender o reservar entrada
+
+  if error
+    .error= error
+
+  if eventos.length === 0
+    p.vacio No hay eventos PROGRAMADOS disponibles. Creá uno antes de vender entradas.
+  else if clientes.length === 0
+    p.vacio No hay clientes cargados. Creá uno antes de vender entradas.
+  else
+    form.simple(method="POST" action="/panel/entradas/nueva")
+      label(for="eventoId") Evento
+      select#eventoId(name="eventoId" required)
+        option(value="" disabled selected=!eventoElegido) Elegí un evento
+        each evento in eventos
+          option(value=evento.id selected=(eventoElegido === String(evento.id)) disabled=(evento.disponibles === 0))
+            = evento.nombre + ' — ' + evento.disponibles + ' de ' + evento.capacidad + ' disponibles' + (evento.disponibles === 0 ? ' (AGOTADO)' : '') + ' — $' + evento.precio
+
+      label(for="clienteId") Cliente
+      select#clienteId(name="clienteId" required)
+        option(value="" disabled selected=!v.clienteId) Elegí un cliente
+        each cliente in clientes
+          option(value=cliente.id selected=(String(v.clienteId) === String(cliente.id)))= cliente.nombre + ' ' + cliente.apellido + ' (' + cliente.email + ')'
+
+      p.nota El precio se toma del evento. Se puede corregir después desde el detalle de la entrada.
+
+      .barra
+        button.btn(type="submit" name="accion" value="vender") Vender
+        button.btn(type="submit" name="accion" value="reservar") Reservar
+        a.btn.secundario(href="/panel/entradas") Volver
+
+  p.volver
+    a(href="/panel/entradas") ← Volver a entradas

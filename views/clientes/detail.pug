@@ -1,0 +1,49 @@
+extends ../layout
+
+block content
+
+  .encabezado
+    div
+      h2= cliente.nombre + ' ' + cliente.apellido
+      p.subtitulo= cliente.email + (cliente.telefono ? ' · ' + cliente.telefono : '')
+    .acciones
+      a.btn.editar(href="/panel/clientes/" + cliente.id + "/editar") Editar
+      a.btn(href="/panel/entradas/nueva") Vender entrada
+      form.enlinea(method="POST" action="/panel/clientes/" + cliente.id + "/eliminar" onsubmit="return confirm('¿Eliminar este cliente? La acción no se puede deshacer.')")
+        button.btn.peligro(type="submit") Eliminar cliente
+
+  .cards
+    .card
+      div Entradas totales
+      .num= entradas.length
+    .card
+      div Vigentes
+      .num= vigentes
+
+  h3 Historial de entradas
+  if entradas.length === 0
+    p.vacio Este cliente todavía no compró ni reservó entradas.
+  else
+    table
+      thead
+        tr
+          th #
+          th Evento
+          th Precio
+          th Estado
+          th Acciones
+      tbody
+        each entrada in entradas
+          tr
+            td= entrada.id
+            td= entrada.evento
+            td= '$' + entrada.precio
+            td
+              span.badge(class=entrada.estado)= entrada.estado
+            td.acciones
+              a.btn.chico.secundario(href="/panel/entradas/" + entrada.id) Ver
+
+  p.nota El borrado de cliente es físico. Si tiene entradas vigentes hay que cancelarlas primero.
+
+  p.volver
+    a(href="/panel/clientes") ← Volver a clientes

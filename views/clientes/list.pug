@@ -3,17 +3,32 @@ extends ../layout
 block content
   h2 Clientes
 
+  .barra
+    a.btn(href="/panel/clientes/nuevo") + Nuevo cliente
+
   table
     thead
       tr
+        th #
         th Nombre
         th Apellido
         th Email
         th Teléfono
+        th Acciones
     tbody
+      if clientes.length === 0
+        tr
+          td.vacio(colspan="6") Todavía no hay clientes cargados.
       each cliente in clientes
         tr
-          td= cliente.nombre
+          td= cliente.id
+          td
+            a(href="/panel/clientes/" + cliente.id)= cliente.nombre
           td= cliente.apellido
           td= cliente.email
           td= cliente.telefono
+          td.acciones
+            .grupo
+              a.btn.chico.editar(href="/panel/clientes/" + cliente.id + "/editar") Editar
+              form.enlinea(method="POST" action="/panel/clientes/" + cliente.id + "/eliminar" onsubmit="return confirm('¿Eliminar este cliente?')")
+                button.btn.chico.peligro(type="submit") Eliminar

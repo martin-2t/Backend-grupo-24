@@ -1,0 +1,29 @@
+extends ../layout
+
+//- Alta y edición en el mismo form
+block content
+  - var c = cliente || {}
+  - var esEdicion = Boolean(c.id)
+
+  h2= esEdicion ? 'Editar cliente' : 'Nuevo cliente'
+
+  if error
+    .error= error
+
+  form.simple(method="POST" action=accion)
+    label(for="nombre") Nombre
+    input#nombre(type="text" name="nombre" value=c.nombre required pattern=patronLetras title="Solo letras, sin números ni símbolos")
+
+    label(for="apellido") Apellido
+    input#apellido(type="text" name="apellido" value=c.apellido required pattern=patronLetras title="Solo letras, sin números ni símbolos")
+
+    label(for="email") Email
+    input#email(type="email" name="email" value=c.email required placeholder="nombre@correo.com")
+
+    label(for="telefono") Teléfono
+    input#telefono(type="text" name="telefono" value=c.telefono inputmode="numeric" pattern=patronTelefono title='Solo números, al menos ' + telefonoMinimo + ' dígitos' placeholder="1123456789")
+    p.nota Opcional. Si lo cargás, tiene que ser solo números y tener al menos #{telefonoMinimo} dígitos.
+
+    .barra
+      button.btn(type="submit" class=(esEdicion ? 'editar' : ''))= esEdicion ? 'Guardar cambios' : 'Crear cliente'
+      a.btn.secundario(href='/panel/clientes') Volver

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const eventosController = require('../controllers/eventosController');
+const eventosController = require('../controllers/api/eventos');
 
 router.get('/proximos', eventosController.proximos);
 router.get('/', eventosController.listar);

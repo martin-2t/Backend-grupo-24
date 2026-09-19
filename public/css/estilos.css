@@ -22,10 +22,16 @@ header.top h1 {
   letter-spacing: 0.5px;
 }
 
+nav.main {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
 nav.main a {
   color: #cdeeee;
   text-decoration: none;
-  margin-left: 18px;
   font-size: 0.95rem;
   transition: color 0.15s ease;
 }
@@ -89,20 +95,38 @@ th {
   color: #0f4c4c;
 }
 
+/* Verde oscuro para crear y para todo lo que cierra una venta o reserva.
+   El borde transparente está para que todas las variantes midan igual, incluso
+   las que sí dibujan borde. */
 .btn {
   display: inline-block;
-  background: #ff8552;
-  color: #1e2b2f;
+  background: #17604a;
+  color: #fff;
   padding: 9px 16px;
   border-radius: 6px;
   text-decoration: none;
+  /* Los <button> no heredan la tipografía del body como sí lo hacen los <a>,
+     así que sin esto la mitad de los botones salían en la fuente del sistema. */
+  font-family: inherit;
   font-size: 0.9rem;
   font-weight: 600;
-  border: none;
+  border: 1.5px solid transparent;
   cursor: pointer;
 }
 
-.btn:hover { background: #f16a34; }
+.btn:hover { background: #0f4433; }
+
+/* Naranja suave con el borde marcado para lo que modifica algo que ya existe */
+.btn.editar {
+  background: #fdeee4;
+  color: #a9501f;
+  border-color: #ff8552;
+}
+
+.btn.editar:hover {
+  background: #fbdfcc;
+  border-color: #f16a34;
+}
 
 form.simple {
   background: #fff;
@@ -147,3 +171,264 @@ form.simple input, form.simple select, form.simple textarea {
 .badge.PROGRAMADO, .badge.VALIDA, .badge.ACTIVA { background: #2f9e6e; }
 .badge.FINALIZADO, .badge.RESERVADA { background: #d99a2b; }
 .badge.CANCELADO, .badge.CANCELADA, .badge.INACTIVA { background: #d1483f; }
+/* ------------------------------------------------------------------ */
+/* Panel: avisos, barras de accion, botones y vistas de detalle        */
+/* ------------------------------------------------------------------ */
+
+/* Tarjetas del dashboard que ahora son links */
+a.card {
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+a.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(15, 76, 76, 0.18);
+}
+
+/* Avisos despues de un redirect (llegan por querystring) */
+.flash {
+  padding: 11px 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 0.92rem;
+}
+
+.flash.ok {
+  background: #d9f2e6;
+  color: #17604a;
+  border-left: 4px solid #2f9e6e;
+}
+
+.flash.alerta {
+  background: #fde3d8;
+  color: #a13d1e;
+  border-left: 4px solid #d1483f;
+}
+
+/* Fila de botones */
+.barra {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+
+.btn.secundario {
+  background: #e4f3f0;
+  color: #0f4c4c;
+}
+
+.btn.secundario:hover { background: #cfe8e3; }
+
+/* Gris para los cambios de estado: dar de baja o reactivar una sala, finalizar o
+   cancelar un evento, cancelar una entrada. No borran nada, solo cambian el
+   estado del registro, así que no necesitan alarmar. */
+.btn.baja {
+  background: #e7e6e1;
+  color: #454b4b;
+  border-color: #a9aba4;
+}
+
+.btn.baja:hover {
+  background: #dad8d1;
+  border-color: #8e918a;
+}
+
+/* Rojo apagado con el borde marcado, igual criterio que .editar. Solo para los
+   borrados físicos, que no se pueden deshacer. */
+.btn.peligro {
+  background: #b8443c;
+  color: #fdf1ef;
+  border-color: #8e2f26;
+}
+
+.btn.peligro:hover {
+  background: #9c352e;
+  border-color: #6f231c;
+}
+
+.btn.chico {
+  padding: 5px 10px;
+  font-size: 0.8rem;
+}
+
+/* Formularios de una sola accion, para poder mandar POST desde una tabla */
+form.enlinea {
+  display: inline;
+  margin: 0;
+}
+
+/* Acciones del encabezado en las vistas de detalle */
+.encabezado .acciones {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Acciones dentro de una tabla. La celda sigue siendo table-cell: si le ponemos
+   flex se rompen los bordes y el ancho de las columnas. */
+td.acciones {
+  white-space: nowrap;
+}
+
+td.acciones > a.btn,
+td.acciones > form.enlinea {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+td.acciones > :last-child {
+  margin-right: 0;
+}
+
+/* Botones de una misma celda que tienen que medir todos lo mismo: cada columna de
+   la grilla toma el ancho del botón más ancho, y el contenedor se achica al
+   contenido, así la celda no crece de más. */
+td.acciones .grupo {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 6px;
+}
+
+td.acciones .grupo .btn {
+  text-align: center;
+}
+
+/* Cuando la acción va dentro de un <form>, el form es el que ocupa la columna de
+   la grilla, así que el botón tiene que estirarse hasta el borde para quedar
+   del mismo ancho que los que son <a> sueltos. */
+td.acciones .grupo form.enlinea {
+  display: block;
+}
+
+td.acciones .grupo form.enlinea .btn {
+  width: 100%;
+}
+
+/* Encabezado de las vistas de detalle: titulo a la izquierda, acciones a la derecha */
+.encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.encabezado h2 { margin-bottom: 6px; }
+
+.subtitulo {
+  margin: 0 0 12px;
+  color: #4d6266;
+  font-size: 0.9rem;
+}
+
+/* Barra de filtros y buscador */
+form.filtros, form.buscador {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  background: #fff;
+  padding: 12px 16px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(15, 76, 76, 0.08);
+  margin-bottom: 16px;
+}
+
+form.buscador { margin-bottom: 0; }
+
+form.filtros label {
+  font-size: 0.85rem;
+  color: #0f4c4c;
+}
+
+form.filtros select, form.buscador input {
+  padding: 7px 9px;
+  border: 1px solid #cfd8d8;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 0.88rem;
+}
+
+/* Tabla vertical clave/valor de las vistas de detalle */
+tbody th {
+  width: 160px;
+  font-weight: 600;
+}
+
+.panel-dato {
+  background: #fff;
+  padding: 14px 18px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(15, 76, 76, 0.08);
+  margin-bottom: 18px;
+}
+
+.panel-dato h3 { margin-top: 0; }
+
+/* Textos auxiliares */
+.vacio {
+  color: #6b7f83;
+  font-style: italic;
+}
+
+.nota {
+  color: #6b7f83;
+  font-size: 0.85rem;
+}
+
+.volver {
+  margin-top: 26px;
+}
+
+.volver a {
+  color: #147d7d;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.volver a:hover { text-decoration: underline; }
+
+/* Paginas de error */
+.aviso {
+  background: #fff;
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(15, 76, 76, 0.08);
+}
+
+.aviso code {
+  background: #f3ece1;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Links dentro de las tablas */
+td a {
+  color: #147d7d;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+td a:hover { text-decoration: underline; }
+td a.btn { font-weight: 600; color: #fff; }
+td a.btn:hover { text-decoration: none; }
+td a.btn.secundario { color: #0f4c4c; }
+td a.btn.editar { color: #a9501f; }
+td a.btn.peligro { color: #fdf1ef; }
+td a.btn.baja { color: #454b4b; }
+
+/* Tablas anchas en pantallas chicas */
+@media (max-width: 700px) {
+  main { padding: 0 12px; }
+  table { display: block; overflow-x: auto; }
+  .encabezado { flex-direction: column; }
+}

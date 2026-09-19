@@ -22,12 +22,14 @@ app.use(express.urlencoded({ extended: true })); // para leer los formularios de
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // declaracion de rutas de la API (JSON)
+const inicioRoutes = require('./routes/inicio');
 const clientesRoutes = require('./routes/clientes');
 const entradasRoutes = require('./routes/entradas');
-const salasRoutes = require('./routes/salasRoutes');
+const salasRoutes = require('./routes/salas');
 const eventosRoutes = require('./routes/eventos');
 const consultasRoutes = require('./routes/consultas');
 
+app.use('/', inicioRoutes);
 app.use('/clientes', clientesRoutes);
 app.use('/entradas', entradasRoutes);
 app.use('/salas', salasRoutes);

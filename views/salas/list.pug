@@ -3,6 +3,17 @@ extends ../layout
 block content
   h2 Salas
 
+  .barra
+    a.btn(href="/panel/salas/nueva") + Nueva sala
+    form.buscador(method="GET" action="/panel/salas")
+      input(type="text" name="q" placeholder="Buscar por nombre exacto" value=busqueda)
+      button.btn.secundario(type="submit") Buscar
+      if busqueda
+        a.btn.secundario(href="/panel/salas") Limpiar
+
+  if sinResultado
+    .error No existe ninguna sala con el nombre "#{busqueda}".
+
   table
     thead
       tr
@@ -10,11 +21,24 @@ block content
         th Dirección
         th Capacidad
         th Estado
+        th Acciones
     tbody
+      if salas.length === 0
+        tr
+          td.vacio(colspan="5") No hay salas para mostrar.
       each sala in salas
         tr
-          td= sala.nombre
+          td
+            a(href="/panel/salas/" + sala.id)= sala.nombre
           td= sala.direccion
           td= sala.capacidad
           td
             span.badge(class=sala.estado)= sala.estado
+          td.acciones
+            .grupo
+              a.btn.chico.editar(href="/panel/salas/" + sala.id + "/editar") Editar
+              form.enlinea(method="POST" action="/panel/salas/" + sala.id + "/estado" onsubmit=(sala.estado === 'ACTIVA' ? "return confirm('¿Dar de baja esta sala?')" : null))
+                if sala.estado === 'ACTIVA'
+                  button.btn.chico.baja(type="submit") Dar de baja
+                else
+                  button.btn.chico.baja(type="submit") Reactivar

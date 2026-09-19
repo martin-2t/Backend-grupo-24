@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { SOLO_LETRAS, LARGO_MINIMO, texto, numero } = require('./formatos');
 
 // Entidad Sala
 class Sala {
@@ -60,4 +61,31 @@ function toggleSalaById(id) {
   return salas[idx];
 }
 
-module.exports = { getAllSalas, getSalaById, getSalaByName, createSala, updateSalaById, toggleSalaById };
+
+// Una sala chica no tiene sentido para el negocio: el mínimo es una regla del dominio
+const CAPACIDAD_MINIMA = 10;
+
+// Qué hace válida a una sala. Devuelve el motivo del rechazo, o null si está bien.
+function validar({ nombre, capacidad, direccion }) {
+  const n = texto(nombre);
+  if (!n) return 'El nombre de la sala es obligatorio.';
+  if (!SOLO_LETRAS.test(n)) return 'El nombre de la sala solo puede tener letras, sin números ni símbolos.';
+  if (n.length < LARGO_MINIMO) return 'El nombre de la sala debe tener al menos ' + LARGO_MINIMO + ' caracteres.';
+
+  const d = texto(direccion);
+  if (!d) return 'La dirección es obligatoria.';
+  if (d.length < LARGO_MINIMO) return 'La dirección debe tener al menos ' + LARGO_MINIMO + ' caracteres.';
+
+  const c = numero(capacidad);
+  if (isNaN(c) || !Number.isInteger(c)) return 'La capacidad debe ser un número entero.';
+  if (c < CAPACIDAD_MINIMA) return 'La capacidad no puede ser menor a ' + CAPACIDAD_MINIMA + ' localidades.';
+
+  return null;
+}
+
+// Las salas que pueden recibir eventos nuevos
+function activas() {
+  return getAllSalas().filter((s) => s.estado === 'ACTIVA');
+}
+
+module.exports = { CAPACIDAD_MINIMA, validar, activas, getAllSalas, getSalaById, getSalaByName, createSala, updateSalaById, toggleSalaById };

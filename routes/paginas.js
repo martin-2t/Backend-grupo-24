@@ -1,91 +1,54 @@
+// Rutas del panel, montadas bajo /panel. Los formularios HTML solo mandan GET y POST,
+// así que lo que en la API es PUT (finalizar, cancelar, confirmar, baja) acá va por POST.
 const express = require('express');
 const router = express.Router();
 
-const eventosModel = require('../models/eventos');
-const salasModel = require('../models/salas');
-const clientesModel = require('../models/clientes');
-const entradasModel = require('../models/entradas');
-const { lugaresOcupados } = require('../controllers/entradasController');
+const comunes = require('../controllers/paginas/comunes');
+const inicio = require('../controllers/paginas/inicio');
+const eventos = require('../controllers/paginas/eventos');
+const salas = require('../controllers/paginas/salas');
+const clientes = require('../controllers/paginas/clientes');
+const entradas = require('../controllers/paginas/entradas');
+const consultas = require('../controllers/paginas/consultas');
 
-// Página de inicio: resumen general
-router.get('/', (req, res) => {
-  const eventos = eventosModel.getAllEventos();
-  const entradas = entradasModel.getAllEntradas();
+router.use(comunes.localesComunes);
 
-  res.render('index', {
-    titulo: 'Panel Urbana Cult',
-    totalEventos: eventos.length,
-    totalSalas: salasModel.getAllSalas().length,
-    totalClientes: clientesModel.getAll().length,
-    entradasVendidas: entradas.filter((e) => e.estado === 'VALIDA').length,
-    proximos: eventosModel.getEventosProximos().slice(0, 3),
-  });
-});
+router.get('/', inicio.mostrar);
+router.get('/consultas', consultas.mostrar);
 
-// Listado de eventos (con disponibilidad calculada)
-router.get('/eventos', (req, res) => {
-  const eventos = eventosModel.getAllEventos().map((evento) => {
-    const sala = salasModel.getSalaById(evento.salaId);
-    const ocupados = lugaresOcupados(evento.id);
-    return {
-      ...evento,
-      sala: sala ? sala.nombre : 'Sala eliminada',
-      capacidad: sala ? sala.capacidad : 0,
-      disponibles: sala ? Math.max(sala.capacidad - ocupados, 0) : 0,
-    };
-  });
-  res.render('eventos/list', { titulo: 'Eventos', eventos });
-});
+// Las rutas literales van antes que las de :id para que no las capture
+router.get('/eventos', eventos.listar);
+router.get('/eventos/nuevo', eventos.nuevoForm);
+router.post('/eventos/nuevo', eventos.crear);
+router.get('/eventos/:id', eventos.detalle);
+router.get('/eventos/:id/editar', eventos.editarForm);
+router.post('/eventos/:id/editar', eventos.actualizar);
+router.post('/eventos/:id/finalizar', eventos.finalizar);
+router.post('/eventos/:id/cancelar', eventos.cancelar);
 
-// Formulario de alta de evento
-router.get('/eventos/nuevo', (req, res) => {
-  res.render('eventos/form', { titulo: 'Nuevo evento', salas: salasModel.getAllSalas(), error: null });
-});
+router.get('/salas', salas.listar);
+router.get('/salas/nueva', salas.nuevoForm);
+router.post('/salas/nueva', salas.crear);
+router.get('/salas/:id', salas.detalle);
+router.get('/salas/:id/editar', salas.editarForm);
+router.post('/salas/:id/editar', salas.actualizar);
+router.post('/salas/:id/estado', salas.cambiarEstado);
 
-router.post('/eventos/nuevo', (req, res) => {
-  const { nombre, descripcion, fecha, salaId, precio } = req.body;
-  const sala = salasModel.getSalaById(salaId);
+router.get('/clientes', clientes.listar);
+router.get('/clientes/nuevo', clientes.nuevoForm);
+router.post('/clientes/nuevo', clientes.crear);
+router.get('/clientes/:id', clientes.detalle);
+router.get('/clientes/:id/editar', clientes.editarForm);
+router.post('/clientes/:id/editar', clientes.actualizar);
+router.post('/clientes/:id/eliminar', clientes.eliminar);
 
-  if (!nombre || !fecha || !sala || !precio) {
-    return res.status(400).render('eventos/form', {
-      titulo: 'Nuevo evento',
-      salas: salasModel.getAllSalas(),
-      error: 'Completá todos los campos obligatorios con datos válidos.',
-    });
-  }
-
-  eventosModel.createEvento({
-    nombre,
-    descripcion,
-    fecha,
-    salaId: Number(salaId),
-    precio: Number(precio),
-  });
-  res.redirect('/panel/eventos');
-});
-
-// Listado de salas
-router.get('/salas', (req, res) => {
-  res.render('salas/list', { titulo: 'Salas', salas: salasModel.getAllSalas() });
-});
-
-// Listado de clientes
-router.get('/clientes', (req, res) => {
-  res.render('clientes/list', { titulo: 'Clientes', clientes: clientesModel.getAll() });
-});
-
-// Listado de entradas, con datos de evento y cliente resueltos
-router.get('/entradas', (req, res) => {
-  const entradas = entradasModel.getAllEntradas().map((entrada) => {
-    const evento = eventosModel.getEventoById(entrada.eventoId);
-    const cliente = clientesModel.getById(entrada.clienteId);
-    return {
-      ...entrada,
-      evento: evento ? evento.nombre : 'Evento eliminado',
-      cliente: cliente ? `${cliente.nombre} ${cliente.apellido}` : 'Cliente eliminado',
-    };
-  });
-  res.render('entradas/list', { titulo: 'Entradas', entradas });
-});
+router.get('/entradas', entradas.listar);
+router.get('/entradas/nueva', entradas.nuevoForm);
+router.post('/entradas/nueva', entradas.crear);
+router.get('/entradas/:id', entradas.detalle);
+router.post('/entradas/:id/confirmar', entradas.confirmar);
+router.post('/entradas/:id/cancelar', entradas.cancelar);
+router.post('/entradas/:id/precio', entradas.actualizarPrecio);
+router.post('/entradas/:id/eliminar', entradas.eliminar);
 
 module.exports = router;

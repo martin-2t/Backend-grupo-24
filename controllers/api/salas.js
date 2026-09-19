@@ -1,4 +1,7 @@
-const salasModel = require('../models/salas');
+// Las reglas viven en los models. eventosModel entra porque la baja de una sala y
+// el achique de su capacidad dependen de los eventos que tenga encima.
+const salasModel = require('../../models/salas');
+const eventosModel = require('../../models/eventos');
 
 function getAllSalas(req, res) {
   res.status(200).json(salasModel.getAllSalas());
@@ -23,14 +26,9 @@ function getSalaByName(req, res) {
 function createSala(req, res) {
   const { nombre, capacidad, direccion } = req.body;
 
-  if (!nombre || typeof nombre !== 'string') {
-    return res.status(400).json({ error: 'El campo "nombre" es obligatorio y debe ser texto' });
-  }
-  if (!capacidad || typeof capacidad !== 'number') {
-    return res.status(400).json({ error: 'El campo "capacidad" es obligatorio y debe ser un numero entero' });
-  }
-  if (!direccion || typeof direccion !== 'string') {
-    return res.status(400).json({ error: 'El campo "direccion" es obligatorio y debe ser texto' });
+  const error = salasModel.validar({ nombre, capacidad, direccion });
+  if (error) {
+    return res.status(400).json({ error });
   }
 
   const nuevo = salasModel.createSala({ nombre, capacidad, direccion });
@@ -44,15 +42,15 @@ function updateSala(req, res) {
   }
 
   const { nombre, capacidad, direccion } = req.body;
+  const capacidadFinal = capacidad !== undefined ? capacidad : sala.capacidad;
 
-  if (nombre !== undefined && typeof nombre !== 'string') {
-    return res.status(400).json({ error: 'El campo "nombre" debe ser texto' });
-  }
-  if (capacidad !== undefined && typeof capacidad !== 'number') {
-    return res.status(400).json({ error: 'El campo "capacidad" debe ser un numero entero' });
-  }
-  if (direccion !== undefined && typeof direccion !== 'string') {
-    return res.status(400).json({ error: 'El campo "direccion" debe ser texto' });
+  // El PUT es parcial: validamos cómo quedaría la sala, y que no se achique por
+  // debajo de lo que ya se vendió en sus eventos
+  const error =
+    salasModel.validar({ ...sala, ...req.body }) ||
+    eventosModel.validarCapacidadDeSala(sala.id, capacidadFinal);
+  if (error) {
+    return res.status(400).json({ error });
   }
 
   const salaActualizada = salasModel.updateSalaById(req.params.id, { nombre, capacidad, direccion });
@@ -60,11 +58,17 @@ function updateSala(req, res) {
 }
 
 function toggleSala(req, res) {
-  const salaInactiva = salasModel.toggleSalaById(req.params.id);
-  if (!salaInactiva) {
+  const sala = salasModel.getSalaById(req.params.id);
+  if (!sala) {
     return res.status(404).json({ error: 'Sala no encontrada' });
   }
-  return res.status(200).json(salaInactiva);
+
+  const error = eventosModel.validarCambioDeEstadoDeSala(sala);
+  if (error) {
+    return res.status(400).json({ error });
+  }
+
+  return res.status(200).json(salasModel.toggleSalaById(sala.id));
 }
 
 module.exports = { getAllSalas, getSalaById, getSalaByName, createSala, updateSala, toggleSala };

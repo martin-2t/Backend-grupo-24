@@ -1,0 +1,50 @@
+extends ../layout
+
+block content
+  .encabezado
+    div
+      h2= sala.nombre
+      p.subtitulo
+        span.badge(class=sala.estado)= sala.estado
+        span  · #{sala.direccion}
+    .acciones
+      a.btn.editar(href="/panel/salas/" + sala.id + "/editar") Editar
+      form.enlinea(method="POST" action="/panel/salas/" + sala.id + "/estado" onsubmit=(sala.estado === 'ACTIVA' ? "return confirm('¿Dar de baja esta sala?')" : null))
+        if sala.estado === 'ACTIVA'
+          button.btn.baja(type="submit") Dar de baja
+        else
+          button.btn.baja(type="submit") Reactivar
+
+  .cards
+    .card
+      div Capacidad
+      .num= sala.capacidad
+    .card
+      div Eventos en esta sala
+      .num= eventos.length
+
+  h3 Eventos programados en esta sala
+  if eventos.length === 0
+    p.vacio Esta sala todavía no tiene eventos asociados.
+  else
+    table
+      thead
+        tr
+          th Evento
+          th Fecha
+          th Disponibles / Capacidad
+          th Estado
+      tbody
+        each evento in eventos
+          tr
+            td
+              a(href="/panel/eventos/" + evento.id)= evento.nombre
+            td= new Date(evento.fecha).toLocaleString('es-AR')
+            td= evento.disponibles + ' / ' + evento.capacidad
+            td
+              span.badge(class=evento.estado)= evento.estado
+
+  p.nota Las salas no se eliminan: se dan de baja para no perder el historial de eventos.
+
+  p.volver
+    a(href="/panel/salas") ← Volver a salas

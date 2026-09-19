@@ -66,10 +66,54 @@ function removeEntrada(id) {
   return true;
 }
 
+// Lugares ocupados de un evento: vendidas y reservadas ocupan, canceladas liberan
+function lugaresOcupados(eventoId) {
+  return getEntradasByEvento(eventoId).filter(
+    (e) => e.estado === 'VALIDA' || e.estado === 'RESERVADA'
+  ).length;
+}
+
+// Transiciones válidas de una entrada. Devuelven el motivo del rechazo, o null.
+function validarConfirmacion(entrada) {
+  if (entrada.estado !== 'RESERVADA') return 'Solo se pueden confirmar entradas en estado RESERVADA.';
+  return null;
+}
+
+function validarCancelacion(entrada) {
+  if (entrada.estado === 'CANCELADA') return 'La entrada ya estaba cancelada.';
+  return null;
+}
+
+// Conteo por estado. Sin argumento cuenta todas; si no, la lista que le pasen.
+function contarPorEstado(lista) {
+  const entradas = lista || getAllEntradas();
+  return {
+    vendidas: entradas.filter((e) => e.estado === 'VALIDA').length,
+    reservadas: entradas.filter((e) => e.estado === 'RESERVADA').length,
+    canceladas: entradas.filter((e) => e.estado === 'CANCELADA').length,
+    vigentes: entradas.filter((e) => e.estado !== 'CANCELADA').length,
+  };
+}
+
+// El precio de una entrada: número, y nunca negativo
+function validarPrecio(valor) {
+  const p = Number(valor);
+  if (valor === undefined || valor === null || String(valor).trim() === '' || isNaN(p)) {
+    return 'El precio debe ser un número.';
+  }
+  if (p < 0) return 'El precio no puede ser negativo.';
+  return null;
+}
+
 module.exports = {
+  validarPrecio,
+  validarConfirmacion,
+  validarCancelacion,
+  contarPorEstado,
   getAllEntradas,
   getEntradaById,
   getEntradasByEvento,
+  lugaresOcupados,
   createEntrada,
   updateEntradaById,
   removeEntrada,

@@ -1,7 +1,6 @@
-const entradasModel = require('../models/entradas');
-const eventosModel = require('../models/eventos');
-const salasModel = require('../models/salas');
-const { lugaresOcupados } = require('./entradasController');
+const entradasModel = require('../../models/entradas');
+const eventosModel = require('../../models/eventos');
+const salasModel = require('../../models/salas');
 
 // GET /consultas/entradas-vendidas            -> vendidas por cada evento
 // GET /consultas/entradas-vendidas/:eventoId  -> vendidas de un evento puntual
@@ -36,7 +35,7 @@ function entradasDisponibles(req, res) {
   }
 
   const sala = salasModel.getSalaById(evento.salaId);
-  const ocupados = lugaresOcupados(eventoId);
+  const ocupados = entradasModel.lugaresOcupados(eventoId);
   const disponibles = Math.max(sala.capacidad - ocupados, 0);
 
   return res.status(200).json({
