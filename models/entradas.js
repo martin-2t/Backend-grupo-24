@@ -66,10 +66,18 @@ function removeEntrada(id) {
   return true;
 }
 
+// Lugares ocupados de un evento: vendidas y reservadas ocupan, canceladas liberan
+function lugaresOcupados(eventoId) {
+  return getEntradasByEvento(eventoId).filter(
+    (e) => e.estado === 'VALIDA' || e.estado === 'RESERVADA'
+  ).length;
+}
+
 module.exports = {
   getAllEntradas,
   getEntradaById,
   getEntradasByEvento,
+  lugaresOcupados,
   createEntrada,
   updateEntradaById,
   removeEntrada,

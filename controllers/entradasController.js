@@ -3,13 +3,6 @@ const eventosModel = require('../models/eventos');
 const clientesModel = require('../models/clientes');
 const salasModel = require('../models/salas');
 
-// Cuenta los lugares ya ocupados de un evento (vendidos + reservados, porque ambos ocupan cupo)
-function lugaresOcupados(eventoId) {
-  return entradasModel
-    .getEntradasByEvento(eventoId)
-    .filter((e) => e.estado === 'VALIDA' || e.estado === 'RESERVADA').length;
-}
-
 // Valida datos comunes a reserva/venta y devuelve { error, status } o { evento, sala }
 function validarDisponibilidad(eventoId, clienteId) {
   const evento = eventosModel.getEventoById(eventoId);
@@ -26,7 +19,7 @@ function validarDisponibilidad(eventoId, clienteId) {
   }
 
   const sala = salasModel.getSalaById(evento.salaId);
-  const ocupados = lugaresOcupados(eventoId);
+  const ocupados = entradasModel.lugaresOcupados(eventoId);
   if (ocupados >= sala.capacidad) {
     return { error: 'No quedan lugares disponibles para este evento', status: 400 };
   }
@@ -153,5 +146,4 @@ module.exports = {
   cancelarEntrada,
   updateEntrada,
   deleteEntrada,
-  lugaresOcupados,
 };

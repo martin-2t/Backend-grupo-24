@@ -49,7 +49,7 @@ Equipo **Commit & Chill**:
 
 | Integrante | Módulo a cargo |
 |---|---|
-| Bravo, Julieta | — |
+| Bravo, Julieta | Modificación de pug's + correciones técnicas & visuales |
 | Mazzitelli, Matías | Sala (CRUD + baja lógica) |
 | Piedrabuena, Julián | Entrada (CRUD) |
 | Savia, Martín | Cliente (CRUD) + coordinación del equipo |
@@ -246,7 +246,7 @@ las pruebas con Thunder Client) está en el Google Drive del equipo — ver el d
 - [x] CRUD de Cliente
 - [x] CRUD de Sala + baja lógica
 - [x] CRUD de Entrada
-- [ ] Módulo de Eventos (CRUD, asociado a una sala)
-- [ ] Validación de capacidad máxima al vender entradas
-- [ ] Consultas de negocio (entradas vendidas, entradas disponibles, eventos próximos)
-- [ ] Cancelación de entradas con liberación del lugar
+- [x] Módulo de Eventos (CRUD, asociado a una sala)
+- [x] Validación de capacidad máxima al vender entradas
+- [x] Consultas de negocio (entradas vendidas, entradas disponibles, eventos próximos)
+- [x] Cancelación de entradas con liberación del lugar

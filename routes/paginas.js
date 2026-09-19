@@ -1,91 +1,47 @@
+// Rutas del panel, montadas bajo /panel. Los formularios HTML solo mandan GET y POST,
+// así que lo que en la API es PUT (finalizar, cancelar, confirmar, baja) acá va por POST.
 const express = require('express');
 const router = express.Router();
+const paginasController = require('../controllers/paginasController');
 
-const eventosModel = require('../models/eventos');
-const salasModel = require('../models/salas');
-const clientesModel = require('../models/clientes');
-const entradasModel = require('../models/entradas');
-const { lugaresOcupados } = require('../controllers/entradasController');
+router.use(paginasController.mensajes);
 
-// Página de inicio: resumen general
-router.get('/', (req, res) => {
-  const eventos = eventosModel.getAllEventos();
-  const entradas = entradasModel.getAllEntradas();
+router.get('/', paginasController.inicio);
+router.get('/consultas', paginasController.consultas);
 
-  res.render('index', {
-    titulo: 'Panel Urbana Cult',
-    totalEventos: eventos.length,
-    totalSalas: salasModel.getAllSalas().length,
-    totalClientes: clientesModel.getAll().length,
-    entradasVendidas: entradas.filter((e) => e.estado === 'VALIDA').length,
-    proximos: eventosModel.getEventosProximos().slice(0, 3),
-  });
-});
+// Las rutas literales van antes que las de :id para que no las capture
+router.get('/eventos', paginasController.eventosListar);
+router.get('/eventos/nuevo', paginasController.eventoNuevoForm);
+router.post('/eventos/nuevo', paginasController.eventoCrear);
+router.get('/eventos/:id', paginasController.eventoDetalle);
+router.get('/eventos/:id/editar', paginasController.eventoEditarForm);
+router.post('/eventos/:id/editar', paginasController.eventoActualizar);
+router.post('/eventos/:id/finalizar', paginasController.eventoFinalizar);
+router.post('/eventos/:id/cancelar', paginasController.eventoCancelar);
 
-// Listado de eventos (con disponibilidad calculada)
-router.get('/eventos', (req, res) => {
-  const eventos = eventosModel.getAllEventos().map((evento) => {
-    const sala = salasModel.getSalaById(evento.salaId);
-    const ocupados = lugaresOcupados(evento.id);
-    return {
-      ...evento,
-      sala: sala ? sala.nombre : 'Sala eliminada',
-      capacidad: sala ? sala.capacidad : 0,
-      disponibles: sala ? Math.max(sala.capacidad - ocupados, 0) : 0,
-    };
-  });
-  res.render('eventos/list', { titulo: 'Eventos', eventos });
-});
+router.get('/salas', paginasController.salasListar);
+router.get('/salas/nueva', paginasController.salaNuevaForm);
+router.post('/salas/nueva', paginasController.salaCrear);
+router.get('/salas/:id', paginasController.salaDetalle);
+router.get('/salas/:id/editar', paginasController.salaEditarForm);
+router.post('/salas/:id/editar', paginasController.salaActualizar);
+router.post('/salas/:id/estado', paginasController.salaCambiarEstado);
 
-// Formulario de alta de evento
-router.get('/eventos/nuevo', (req, res) => {
-  res.render('eventos/form', { titulo: 'Nuevo evento', salas: salasModel.getAllSalas(), error: null });
-});
+router.get('/clientes', paginasController.clientesListar);
+router.get('/clientes/nuevo', paginasController.clienteNuevoForm);
+router.post('/clientes/nuevo', paginasController.clienteCrear);
+router.get('/clientes/:id', paginasController.clienteDetalle);
+router.get('/clientes/:id/editar', paginasController.clienteEditarForm);
+router.post('/clientes/:id/editar', paginasController.clienteActualizar);
+router.post('/clientes/:id/eliminar', paginasController.clienteEliminar);
 
-router.post('/eventos/nuevo', (req, res) => {
-  const { nombre, descripcion, fecha, salaId, precio } = req.body;
-  const sala = salasModel.getSalaById(salaId);
-
-  if (!nombre || !fecha || !sala || !precio) {
-    return res.status(400).render('eventos/form', {
-      titulo: 'Nuevo evento',
-      salas: salasModel.getAllSalas(),
-      error: 'Completá todos los campos obligatorios con datos válidos.',
-    });
-  }
-
-  eventosModel.createEvento({
-    nombre,
-    descripcion,
-    fecha,
-    salaId: Number(salaId),
-    precio: Number(precio),
-  });
-  res.redirect('/panel/eventos');
-});
-
-// Listado de salas
-router.get('/salas', (req, res) => {
-  res.render('salas/list', { titulo: 'Salas', salas: salasModel.getAllSalas() });
-});
-
-// Listado de clientes
-router.get('/clientes', (req, res) => {
-  res.render('clientes/list', { titulo: 'Clientes', clientes: clientesModel.getAll() });
-});
-
-// Listado de entradas, con datos de evento y cliente resueltos
-router.get('/entradas', (req, res) => {
-  const entradas = entradasModel.getAllEntradas().map((entrada) => {
-    const evento = eventosModel.getEventoById(entrada.eventoId);
-    const cliente = clientesModel.getById(entrada.clienteId);
-    return {
-      ...entrada,
-      evento: evento ? evento.nombre : 'Evento eliminado',
-      cliente: cliente ? `${cliente.nombre} ${cliente.apellido}` : 'Cliente eliminado',
-    };
-  });
-  res.render('entradas/list', { titulo: 'Entradas', entradas });
-});
+router.get('/entradas', paginasController.entradasListar);
+router.get('/entradas/nueva', paginasController.entradaNuevaForm);
+router.post('/entradas/nueva', paginasController.entradaCrear);
+router.get('/entradas/:id', paginasController.entradaDetalle);
+router.post('/entradas/:id/confirmar', paginasController.entradaConfirmar);
+router.post('/entradas/:id/cancelar', paginasController.entradaCancelar);
+router.post('/entradas/:id/precio', paginasController.entradaActualizarPrecio);
+router.post('/entradas/:id/eliminar', paginasController.entradaEliminar);
 
 module.exports = router;

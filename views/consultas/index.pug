@@ -1,0 +1,70 @@
+extends ../layout
+
+//- Lo mismo que exponen los endpoints de /consultas
+block content
+  h2 Consultas
+
+  .cards
+    .card
+      div Entradas vendidas
+      .num= totalVendidas
+    .card
+      div Reservas activas
+      .num= totalReservadas
+    .card
+      div Eventos próximos
+      .num= proximos.length
+
+  h3 Entradas vendidas y disponibilidad por evento
+  if resumen.length === 0
+    p.vacio No hay eventos cargados.
+  else
+    table
+      thead
+        tr
+          th Evento
+          th Sala
+          th Estado
+          th Vendidas
+          th Reservadas
+          th Canceladas
+          th Ocupados
+          th Disponibles
+          th Capacidad
+      tbody
+        each fila in resumen
+          tr
+            td
+              a(href="/panel/eventos/" + fila.id)= fila.nombre
+            td= fila.sala
+            td
+              span.badge(class=fila.estado)= fila.estado
+            td= fila.vendidas
+            td= fila.reservadas
+            td= fila.canceladas
+            td= fila.ocupados
+            td= fila.disponibles
+            td= fila.capacidad
+
+  h3 Próximos eventos
+  p.nota Eventos en estado PROGRAMADO con fecha futura, ordenados por fecha.
+  if proximos.length === 0
+    p.vacio No hay eventos próximos programados.
+  else
+    table
+      thead
+        tr
+          th Evento
+          th Sala
+          th Fecha
+          th Precio
+          th Disponibles
+      tbody
+        each evento in proximos
+          tr
+            td
+              a(href="/panel/eventos/" + evento.id)= evento.nombre
+            td= evento.sala
+            td= new Date(evento.fecha).toLocaleString('es-AR')
+            td= '$' + evento.precio
+            td= evento.disponibles + ' / ' + evento.capacidad

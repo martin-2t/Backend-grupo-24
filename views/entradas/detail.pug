@@ -1,0 +1,56 @@
+extends ../layout
+
+block content
+  .encabezado
+    div
+      h2= 'Entrada #' + entrada.id
+      p.subtitulo
+        span.badge(class=entrada.estado)= entrada.estado
+    .acciones
+      if entrada.estado === 'RESERVADA'
+        form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/confirmar")
+          button.btn(type="submit") Confirmar reserva
+      if entrada.estado !== 'CANCELADA'
+        form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/cancelar" onsubmit="return confirm('¿Cancelar esta entrada? El lugar quedará liberado.')")
+          button.btn.baja(type="submit") Cancelar
+
+  table
+    tbody
+      tr
+        th Evento
+        td
+          if evento
+            a(href="/panel/eventos/" + evento.id)= evento.nombre
+            span  · #{new Date(evento.fecha).toLocaleString('es-AR')} · #{evento.sala}
+          else
+            span= entrada.evento
+      tr
+        th Cliente
+        td
+          if cliente
+            a(href="/panel/clientes/" + cliente.id)= cliente.nombre + ' ' + cliente.apellido
+            span  · #{cliente.email}
+          else
+            span= entrada.cliente
+      tr
+        th Precio
+        td= '$' + entrada.precio
+      tr
+        th Estado
+        td
+          span.badge(class=entrada.estado)= entrada.estado
+
+  h3 Corregir precio
+  form.simple(method="POST" action="/panel/entradas/" + entrada.id + "/precio")
+    label(for="precio") Precio
+    input#precio(type="number" name="precio" min="0" step="1" value=entrada.precio required)
+    .barra
+      button.btn.editar(type="submit") Guardar precio
+
+  h3 Eliminar
+  p.nota Eliminar borra el registro físicamente. Para liberar el lugar conservando el historial, usá Cancelar.
+  form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/eliminar" onsubmit="return confirm('¿Eliminar definitivamente esta entrada?')")
+    button.btn.peligro(type="submit") Eliminar entrada
+
+  p.volver
+    a(href="/panel/entradas") ← Volver a entradas

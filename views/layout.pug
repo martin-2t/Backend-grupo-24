@@ -16,5 +16,10 @@ html(lang="es")
         a(href="/panel/salas") Salas
         a(href="/panel/clientes") Clientes
         a(href="/panel/entradas") Entradas
+        a(href="/panel/consultas") Consultas
     main
+      if mensaje
+        .flash.ok= mensaje
+      if alerta
+        .flash.alerta= alerta
       block content

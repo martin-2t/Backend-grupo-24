@@ -1,28 +1,36 @@
 extends ../layout
 
+//- Alta y edición en el mismo form: cambia según venga o no un evento
 block content
-  h2 Nuevo evento
+  - var e = evento || {}
+  - var esEdicion = Boolean(e.id)
+  - var valorFecha = e.fecha ? String(e.fecha).slice(0, 16) : ''
+
+  h2= esEdicion ? 'Editar evento' : 'Nuevo evento'
 
   if error
     .error= error
 
-  form.simple(method="POST" action="/panel/eventos/nuevo")
+  form.simple(method="POST" action=accion)
     label(for="nombre") Nombre
-    input#nombre(type="text" name="nombre" required)
+    input#nombre(type="text" name="nombre" value=e.nombre required)
 
     label(for="descripcion") Descripción
-    textarea#descripcion(name="descripcion" rows="3")
+    textarea#descripcion(name="descripcion" rows="3")= e.descripcion
 
     label(for="fecha") Fecha y hora
-    input#fecha(type="datetime-local" name="fecha" required)
+    input#fecha(type="datetime-local" name="fecha" value=valorFecha required)
 
     label(for="salaId") Sala
     select#salaId(name="salaId" required)
+      option(value="" disabled selected=!e.salaId) Elegí una sala
       each sala in salas
-        option(value=sala.id)= sala.nombre + ' (capacidad ' + sala.capacidad + ')'
+        option(value=sala.id selected=(String(e.salaId) === String(sala.id)))
+          = sala.nombre + ' (capacidad ' + sala.capacidad + ')' + (sala.estado === 'INACTIVA' ? ' — DADA DE BAJA' : '')
 
     label(for="precio") Precio
-    input#precio(type="number" name="precio" min="0" step="1" required)
+    input#precio(type="number" name="precio" min="0" step="1" value=e.precio required)
 
-    div(style="margin-top:16px")
-      button.btn(type="submit") Crear evento
+    .barra
+      button.btn(type="submit" class=(esEdicion ? 'editar' : ''))= esEdicion ? 'Guardar cambios' : 'Crear evento'
+      a.btn.secundario(href="/panel/eventos") Volver

@@ -4,22 +4,30 @@ block content
   h2 Panel general
 
   .cards
-    .card
+    a.card(href="/panel/eventos")
       div Eventos
       .num= totalEventos
-    .card
+    a.card(href="/panel/salas")
       div Salas
       .num= totalSalas
-    .card
+    a.card(href="/panel/clientes")
       div Clientes
       .num= totalClientes
-    .card
+    a.card(href="/panel/entradas?estado=VALIDA")
       div Entradas vendidas
       .num= entradasVendidas
+    a.card(href="/panel/entradas?estado=RESERVADA")
+      div Reservas activas
+      .num= entradasReservadas
+
+  .barra
+    a.btn(href="/panel/entradas/nueva") Vender entrada
+    a.btn(href="/panel/eventos/nuevo") + Nuevo evento
+    a.btn.secundario(href="/panel/consultas") Ver consultas
 
   h2 Próximos eventos
   if proximos.length === 0
-    p No hay eventos próximos programados.
+    p.vacio No hay eventos próximos programados.
   else
     table
       thead
@@ -27,9 +35,13 @@ block content
           th Evento
           th Fecha
           th Precio
+          th
       tbody
         each evento in proximos
           tr
-            td= evento.nombre
+            td
+              a(href="/panel/eventos/" + evento.id)= evento.nombre
             td= new Date(evento.fecha).toLocaleString('es-AR')
             td= '$' + evento.precio
+            td.acciones
+              a.btn.chico(href="/panel/entradas/nueva?evento=" + evento.id) Vender
