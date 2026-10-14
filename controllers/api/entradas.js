@@ -35,35 +35,39 @@ function chequearReferencias(eventoId, clienteId) {
 }
 
 // Crea una entrada con el estado que corresponda, aplicando las reglas del model
-function crearEntrada(req, res, estado) {
-  const { eventoId, clienteId, precio } = req.body;
+async function crearEntrada(req, res, next, estado) {
+  try {
+    const { eventoId, clienteId, precio } = req.body;
 
-  const referencias = chequearReferencias(eventoId, clienteId);
-  if (referencias) {
-    return res.status(referencias.status).json({ error: referencias.error });
+    const referencias = chequearReferencias(eventoId, clienteId);
+    if (referencias) {
+      return res.status(referencias.status).json({ error: referencias.error });
+    }
+
+    const chequeo = await eventosModel.validarVenta(eventoId, clienteId);
+    if (chequeo.error) {
+      return res.status(400).json({ error: chequeo.error });
+    }
+
+    // En la venta directa se puede pisar el precio; la reserva siempre toma el del evento
+    const precioFinal =
+      estado === 'VALIDA' && typeof precio === 'number' ? precio : chequeo.evento.precio;
+
+    const nueva = entradasModel.createEntrada({ eventoId, clienteId, precio: precioFinal, estado });
+    return res.status(201).json(nueva);
+  } catch (error) {
+    next(error);
   }
-
-  const chequeo = eventosModel.validarVenta(eventoId, clienteId);
-  if (chequeo.error) {
-    return res.status(400).json({ error: chequeo.error });
-  }
-
-  // En la venta directa se puede pisar el precio; la reserva siempre toma el del evento
-  const precioFinal =
-    estado === 'VALIDA' && typeof precio === 'number' ? precio : chequeo.evento.precio;
-
-  const nueva = entradasModel.createEntrada({ eventoId, clienteId, precio: precioFinal, estado });
-  return res.status(201).json(nueva);
 }
 
 // Venta directa: crea la entrada ya como VALIDA
-function crearVenta(req, res) {
-  return crearEntrada(req, res, 'VALIDA');
+function crearVenta(req, res, next) {
+  return crearEntrada(req, res, next, 'VALIDA');
 }
 
 // Reserva: crea la entrada como RESERVADA (ocupa el lugar, pero todavía no está vendida)
-function crearReserva(req, res) {
-  return crearEntrada(req, res, 'RESERVADA');
+function crearReserva(req, res, next) {
+  return crearEntrada(req, res, next, 'RESERVADA');
 }
 
 // Confirma una reserva existente, convirtiéndola en venta (RESERVADA -> VALIDA)

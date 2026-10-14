@@ -3,7 +3,9 @@
 API REST para la gestión de eventos culturales y venta de entradas de **Urbana Cult** —
 altas, consultas, actualización y baja de clientes, salas y entradas, evitando la
 sobreventa por planillas separadas. Construida con **Node.js + Express**, siguiendo una
-arquitectura en capas (Router → Controller → Model) con persistencia en archivos JSON.
+arquitectura en capas (Router → Controller → Model) con persistencia en **MongoDB** mediante
+**Mongoose**. *(Migración en curso: Sala ya usa MongoDB; Cliente, Evento y Entrada todavía
+usan archivos JSON.)*
 
 Trabajo práctico grupal — Tecnicatura Superior en Desarrollo de Software (IFTS 29),
 materia **Desarrollo de Sistemas Web (Back End)**, 2° cuatrimestre 2026. Caso de
@@ -11,7 +13,7 @@ estudio N° 3: *"Eventos y Entradas — Urbana Cult"*.
 
 ![Node.js](https://img.shields.io/badge/Node.js-express-339933?logo=nodedotjs&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)
-![JSON](https://img.shields.io/badge/Persistencia-JSON-informational)
+![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white)
 ![Status](https://img.shields.io/badge/status-en%20desarrollo-yellow)
 
 ---
@@ -51,7 +53,7 @@ Equipo **Commit & Chill**:
 | Integrante | Módulo a cargo |
 |---|---|
 | Bravo, Julieta | Ampliación del panel Pug + validaciones y refactor a MVC |
-| Mazzitelli, Matías | Sala (CRUD + baja lógica) |
+| Mazzitelli, Matías | Sala (CRUD + baja lógica) · Base para MongoDB (conexión, seed y manejo de errores), migración de Sala a MongoDB y alta de la base en MongoDB Atlas |
 | Piedrabuena, Julián | Entrada (CRUD) |
 | Savia, Martín | Cliente (CRUD) + coordinación del equipo |
 
@@ -62,13 +64,15 @@ Equipo **Commit & Chill**:
 | Lenguaje / Runtime | Node.js |
 | Framework | Express 4 |
 | Vistas | Pug |
-| Persistencia | Archivos JSON (`/data`) |
+| Persistencia | MongoDB + Mongoose (Sala) · archivos JSON en `/data` (resto, en migración) |
+| Configuración | Variables de entorno con `dotenv` (archivo `.env`) |
 | Pruebas de endpoints | Thunder Client |
 
 ## Arquitectura
 
-Arquitectura en capas clásica de Express, sin ORM: cada entidad separa Router,
-Controller y Model, y el Model lee/escribe directamente su archivo JSON.
+Arquitectura en capas clásica de Express: cada entidad separa Router, Controller y
+Model. El Model define el Schema de Mongoose y accede a su colección de MongoDB (o, mientras
+dura la migración, a su archivo JSON). Todo el acceso a datos es asincrónico (`async`/`await`).
 
 ```
 Cliente (JSON)
@@ -80,23 +84,25 @@ Router        → define las rutas y delega en el Controller
 Controller     → valida la forma del request, elige el status y la respuesta
    │
    ▼
-Model          → reglas de negocio + acceso a datos (lee/escribe su .json)
+Model          → Schema + reglas de negocio + acceso a datos
    │
    ▼
-/data/*.json
+MongoDB (Mongoose)
 ```
 
 ```
+├── config             # conexión a MongoDB (db.js)
 ├── controllers
 │   ├── api            # responden JSON
 │   └── paginas        # renderizan las vistas del panel
-├── models             # reglas de negocio + acceso a los .json (uno por entidad)
+├── models             # Schema + reglas de negocio + acceso a datos (uno por entidad)
 ├── routes             # definición de endpoints por recurso
 ├── views              # plantillas Pug del panel
 ├── middleware         # logger, notFound, errorHandler
 ├── public/css         # estilos del panel
-├── data               # persistencia (clientes.json, salas.json, entradas.json, ...)
-└── index.js           # arranque de la app y montaje de routers
+├── data               # datos iniciales que carga el seed (y los .json aún no migrados)
+├── scripts            # seed.js: carga /data en MongoDB
+└── index.js           # conecta a MongoDB y levanta el servidor
 ```
 
 ## Reglas de negocio
@@ -127,11 +133,11 @@ Model          → reglas de negocio + acceso a datos (lee/escribe su .json)
 | `email` | `string` | obligatorio, formato válido |
 | `telefono` | `string` | opcional; si se carga, solo números y mínimo 10 dígitos |
 
-**Sala**
+**Sala** — colección `salas` en MongoDB
 
 | Campo | Tipo | Notas |
 |---|---|---|
-| `id` | `number` | autogenerado |
+| `_id` | `ObjectId` | autogenerado por MongoDB |
 | `nombre` | `string` | obligatorio, solo letras, mínimo 4 caracteres |
 | `capacidad` | `number` | obligatorio, entero, mínimo 10 |
 | `direccion` | `string` | obligatorio, mínimo 4 caracteres |
@@ -145,7 +151,7 @@ Model          → reglas de negocio + acceso a datos (lee/escribe su .json)
 | `nombre` | `string` | obligatorio, mínimo 4 caracteres |
 | `descripcion` | `string` | opcional |
 | `fecha` | `string` | obligatorio; al crear debe ser futura |
-| `salaId` | `number` | obligatorio, la sala debe existir y estar `ACTIVA` |
+| `salaId` | `string` | obligatorio: el `_id` (ObjectId) de una sala existente y `ACTIVA` |
 | `precio` | `number` | obligatorio, mayor o igual a cero |
 | `estado` | `string` | `PROGRAMADO` / `FINALIZADO` / `CANCELADO` |
 
@@ -239,10 +245,10 @@ Model          → reglas de negocio + acceso a datos (lee/escribe su .json)
 
 ```json
 {
-  "id": 5,
+  "_id": "6acf79f31fc328eb410c87c0",
   "nombre": "Teatro Colón",
-  "capacidad": 2500,
   "direccion": "Cerrito 628",
+  "capacidad": 2500,
   "estado": "ACTIVA"
 }
 ```
@@ -294,17 +300,32 @@ son `PUT` (finalizar, cancelar, confirmar, dar de baja) en el panel se exponen c
 
 ## Cómo correrlo en local
 
-**Prerrequisitos**: Node.js.
+**Prerrequisitos**: Node.js y una base MongoDB (local o en MongoDB Atlas).
 
 ```bash
 git clone https://github.com/martin-2t/Backend-grupo-24.git
 cd Backend-grupo-24
 npm install
+cp .env.example .env    # y completar MONGODB_URI
+npm run seed            # carga los datos iniciales de /data (vacía las colecciones antes)
 npm run dev
 ```
 
 La API queda disponible en `http://localhost:3000` y el panel web en
 `http://localhost:3000/panel`.
+
+Para una base MongoDB local con Docker (coincide con el valor por defecto de `.env.example`):
+
+```bash
+docker run -d --name urbana-mongo -p 127.0.0.1:27017:27017 mongo:8
+```
+
+Con **MongoDB Atlas**, reemplazar `MONGODB_URI` en `.env` por la cadena de conexión que da
+Atlas. El archivo `.env` no se sube al repositorio.
+
+En el equipo, cada integrante desarrolla sobre **su propia base** dentro del mismo cluster de
+Atlas (por ejemplo, `urbana-cult-martin`), así `npm run seed` nunca borra datos ajenos. La base
+`urbana-cult` es la compartida, para integrar y para las pruebas finales.
 
 ## Documentación adicional
 
@@ -325,3 +346,8 @@ las pruebas con Thunder Client) está en el Google Drive del equipo — ver el d
 - [x] Panel web en Pug con CRUD completo sobre los mismos datos
 - [x] Validaciones de campo compartidas por la API y el panel
 - [x] Reglas de integridad entre sala, evento y entrada
+- [x] Base para MongoDB: conexión con Mongoose, variables de entorno, seed y manejo de errores de Mongoose
+- [x] Sala migrada a MongoDB
+- [ ] Cliente migrado a MongoDB
+- [ ] Evento migrado a MongoDB
+- [ ] Entrada migrada a MongoDB

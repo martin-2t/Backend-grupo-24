@@ -23,40 +23,48 @@ function proximos(req, res) {
 }
 
 // CREATE
-function crear(req, res) {
-  const { nombre, descripcion, fecha, salaId, precio } = req.body;
+async function crear(req, res, next) {
+  try {
+    const { nombre, descripcion, fecha, salaId, precio } = req.body;
 
-  // Una sala inexistente es un 404; el resto de las reglas son un 400
-  if (salaId !== undefined && !salasModel.getSalaById(salaId)) {
-    return res.status(404).json({ error: 'La sala indicada no existe' });
+    // Una sala inexistente es un 404; el resto de las reglas son un 400
+    if (salaId !== undefined && !(await salasModel.getSalaById(salaId))) {
+      return res.status(404).json({ error: 'La sala indicada no existe' });
+    }
+
+    const error = await eventosModel.validar({ nombre, fecha, salaId, precio });
+    if (error) {
+      return res.status(400).json({ error });
+    }
+
+    const nuevo = eventosModel.createEvento({ nombre, descripcion, fecha, salaId, precio });
+    res.status(201).json(nuevo);
+  } catch (error) {
+    next(error);
   }
-
-  const error = eventosModel.validar({ nombre, fecha, salaId, precio });
-  if (error) {
-    return res.status(400).json({ error });
-  }
-
-  const nuevo = eventosModel.createEvento({ nombre, descripcion, fecha, salaId, precio });
-  res.status(201).json(nuevo);
 }
 
 // UPDATE | Actualización parcial
-function actualizar(req, res) {
-  const evento = eventosModel.getEventoById(req.params.id);
-  if (!evento) {
-    return res.status(404).json({ error: 'Evento no encontrado' });
-  }
+async function actualizar(req, res, next) {
+  try {
+    const evento = eventosModel.getEventoById(req.params.id);
+    if (!evento) {
+      return res.status(404).json({ error: 'Evento no encontrado' });
+    }
 
-  // Validamos cómo quedaría el evento después del cambio. Pasarle el evento actual
-  // permite corregir uno que ya pasó sin que la fecha futura lo bloquee.
-  const error = eventosModel.validar({ ...evento, ...req.body }, evento);
-  if (error) {
-    return res.status(400).json({ error });
-  }
+    // Validamos cómo quedaría el evento después del cambio. Pasarle el evento actual
+    // permite corregir uno que ya pasó sin que la fecha futura lo bloquee.
+    const error = await eventosModel.validar({ ...evento, ...req.body }, evento);
+    if (error) {
+      return res.status(400).json({ error });
+    }
 
-  const { nombre, descripcion, fecha, salaId, precio } = req.body;
-  const actualizado = eventosModel.updateEventoById(req.params.id, { nombre, descripcion, fecha, salaId, precio });
-  res.status(200).json(actualizado);
+    const { nombre, descripcion, fecha, salaId, precio } = req.body;
+    const actualizado = eventosModel.updateEventoById(req.params.id, { nombre, descripcion, fecha, salaId, precio });
+    res.status(200).json(actualizado);
+  } catch (error) {
+    next(error);
+  }
 }
 
 // UPDATE | Marca el evento como finalizado (ya no admite ventas)

@@ -1,30 +1,177 @@
 [
   {
-    "id": 1,
-    "nombre": "Teatro Flores",
-    "capacidad": 1874,
-    "direccion": "Av. Rivadavia 7806",
+    "_id": "5a1a00000000000000000001",
+    "nombre": "Centro Cultural Flores",
+    "capacidad": 320,
+    "direccion": "Av. Rivadavia 7806, CABA",
     "estado": "ACTIVA"
   },
   {
-    "id": 2,
-    "nombre": "Teatro Vorterix",
-    "capacidad": 1500,
-    "direccion": "Av. Federico Lacroze 3455",
+    "_id": "5a1a00000000000000000002",
+    "nombre": "La Usina de Colegiales",
+    "capacidad": 450,
+    "direccion": "Av. Federico Lacroze 3455, CABA",
     "estado": "ACTIVA"
   },
   {
-    "id": 3,
-    "nombre": "Hipodromo de Palermo",
-    "capacidad": 8600,
-    "direccion": "Av. Bernabe Marquez 700",
+    "_id": "5a1a00000000000000000003",
+    "nombre": "Galpón Cultural Palermo",
+    "capacidad": 600,
+    "direccion": "Godoy Cruz 1650, CABA",
     "estado": "ACTIVA"
   },
   {
-    "id": 4,
-    "nombre": "Estadio Monumental",
-    "capacidad": 65500,
-    "direccion": "Av. Figueroa Alcorta 7597",
+    "_id": "5a1a00000000000000000004",
+    "nombre": "Anfiteatro del Sur",
+    "capacidad": 900,
+    "direccion": "Av. Mitre 2200, Avellaneda, Buenos Aires",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000005",
+    "nombre": "Teatro del Fondo",
+    "capacidad": 120,
+    "direccion": "Medrano 1240, CABA",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000006",
+    "nombre": "La Casona de Boedo",
+    "capacidad": 180,
+    "direccion": "Av. Boedo 980, CABA",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000007",
+    "nombre": "Sala El Altillo",
+    "capacidad": 60,
+    "direccion": "Gascón 640, CABA",
+    "estado": "INACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000008",
+    "nombre": "Club de Jazz La Clave",
+    "capacidad": 150,
+    "direccion": "Defensa 1350, CABA",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000009",
+    "nombre": "Centro Cultural El Andén",
+    "capacidad": 400,
+    "direccion": "Córdoba 2150, Rosario, Santa Fe",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000010",
+    "nombre": "Teatro Ribereño",
+    "capacidad": 280,
+    "direccion": "Bv. Oroño 1600, Rosario, Santa Fe",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000011",
+    "nombre": "La Fábrica Cultural",
+    "capacidad": 700,
+    "direccion": "Av. Colón 4200, Córdoba",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000012",
+    "nombre": "Sala La Cañada",
+    "capacidad": 220,
+    "direccion": "Bv. San Juan 900, Córdoba",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000013",
+    "nombre": "Bodega Cultural Los Andes",
+    "capacidad": 350,
+    "direccion": "San Martín 1800, Mendoza",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000014",
+    "nombre": "Teatro La Grieta",
+    "capacidad": 200,
+    "direccion": "Calle 7 1450, La Plata, Buenos Aires",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000015",
+    "nombre": "Centro Cultural La Estación",
+    "capacidad": 500,
+    "direccion": "Av. Luro 4900, Mar del Plata, Buenos Aires",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000016",
+    "nombre": "Peña El Ceibo",
+    "capacidad": 250,
+    "direccion": "Balcarce 650, Salta",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000017",
+    "nombre": "Casa de la Música del Norte",
+    "capacidad": 300,
+    "direccion": "San Martín 1100, San Miguel de Tucumán",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000018",
+    "nombre": "Galpón Patagonia",
+    "capacidad": 450,
+    "direccion": "Av. Argentina 800, Neuquén",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000019",
+    "nombre": "Refugio Cultural Nahuel",
+    "capacidad": 160,
+    "direccion": "Mitre 450, San Carlos de Bariloche, Río Negro",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000020",
+    "nombre": "Teatro Litoral",
+    "capacidad": 380,
+    "direccion": "San Martín 2600, Santa Fe",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000021",
+    "nombre": "Sala La Caldera",
+    "capacidad": 140,
+    "direccion": "Zelarrayán 900, Bahía Blanca, Buenos Aires",
+    "estado": "INACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000022",
+    "nombre": "Centro Cultural Chamamecero",
+    "capacidad": 320,
+    "direccion": "Junín 1500, Corrientes",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000023",
+    "nombre": "Teatro Fin del Mundo",
+    "capacidad": 210,
+    "direccion": "Av. Maipú 1100, Ushuaia, Tierra del Fuego",
+    "estado": "ACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000024",
+    "nombre": "Casa Cultural Quebrada",
+    "capacidad": 180,
+    "direccion": "Belgrano 800, San Salvador de Jujuy",
+    "estado": "INACTIVA"
+  },
+  {
+    "_id": "5a1a00000000000000000025",
+    "nombre": "Centro Cultural El Puente",
+    "capacidad": 260,
+    "direccion": "Urquiza 1200, Paraná, Entre Ríos",
     "estado": "ACTIVA"
   }
 ]
