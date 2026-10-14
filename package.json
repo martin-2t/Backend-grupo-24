@@ -5,10 +5,13 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "seed": "node scripts/seed.js"
   },
   "dependencies": {
+    "dotenv": "^18.0.7",
     "express": "^4.22.2",
+    "mongoose": "^9.11.2",
     "pug": "^3.0.4"
   },
   "devDependencies": {
