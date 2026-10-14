@@ -1,6 +1,10 @@
+// carga las variables del archivo .env en process.env (antes que cualquier otra cosa)
+require('dotenv').config({ quiet: true });
+
 // importacion de express
 const express = require('express');
 const path = require('path');
+const conectarDB = require('./config/db');
 
 const app = express();
 
@@ -10,7 +14,7 @@ const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
 
 // puerto
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // motor de plantillas Pug
 app.set('view engine', 'pug');
@@ -49,7 +53,12 @@ app.use(notFound);
 app.use(errorHandler);
 
 
-// muestra el servidor en el puerto indicado
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
-});
+// el servidor recién empieza a escuchar cuando la base de datos está conectada
+async function iniciar() {
+  await conectarDB();
+  app.listen(PORT, () => {
+    console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  });
+}
+
+iniciar();

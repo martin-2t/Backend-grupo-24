@@ -28,8 +28,10 @@ function localesComunes(req, res, next) {
   next();
 }
 
-function enriquecerEvento(evento) {
-  const sala = salasModel.getSalaById(evento.salaId);
+// async porque la sala ahora se busca en MongoDB: quien la use debe hacer await
+// (o Promise.all si la aplica con map sobre una lista)
+async function enriquecerEvento(evento) {
+  const sala = await salasModel.getSalaById(evento.salaId);
   const ocupados = entradasModel.lugaresOcupados(evento.id);
   const capacidad = sala ? sala.capacidad : 0;
   return {
@@ -53,12 +55,12 @@ function enriquecerEntrada(entrada) {
 }
 
 // Solo las salas activas, pero sin perder la del evento si la dieron de baja
-function salasElegibles(salaIdActual) {
-  const activas = salasModel.activas();
-  if (salaIdActual === undefined || activas.some((s) => s.id === Number(salaIdActual))) {
+async function salasElegibles(salaIdActual) {
+  const activas = await salasModel.activas();
+  if (salaIdActual === undefined || activas.some((s) => s.id === String(salaIdActual))) {
     return activas;
   }
-  const actual = salasModel.getSalaById(salaIdActual);
+  const actual = await salasModel.getSalaById(salaIdActual);
   return actual ? [...activas, actual] : activas;
 }
 

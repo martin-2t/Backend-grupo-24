@@ -110,7 +110,7 @@ function validarCambioDeEstadoDeSala(sala) {
 }
 
 function programadosEnSala(salaId) {
-  return getAllEventos().filter((e) => e.salaId === Number(salaId) && e.estado === 'PROGRAMADO');
+  return getAllEventos().filter((e) => String(e.salaId) === String(salaId) && e.estado === 'PROGRAMADO');
 }
 
 // Lugares ocupados del evento más lleno de una sala: el piso al que puede bajar su capacidad
@@ -141,7 +141,7 @@ function validarCapacidadDeSala(salaId, nuevaCapacidad) {
 
 // Qué hace válido a un evento. Al editar recibe el evento actual, porque algunas
 // reglas dependen de lo que ya pasó con él.
-function validar({ nombre, fecha, salaId, precio }, eventoActual) {
+async function validar({ nombre, fecha, salaId, precio }, eventoActual) {
   const n = texto(nombre);
   if (!n) return 'El nombre del evento es obligatorio.';
   if (n.length < LARGO_MINIMO) return 'El nombre del evento debe tener al menos ' + LARGO_MINIMO + ' caracteres.';
@@ -154,11 +154,11 @@ function validar({ nombre, fecha, salaId, precio }, eventoActual) {
     return 'La fecha del evento tiene que ser posterior a este momento.';
   }
 
-  const sala = salasModel.getSalaById(salaId);
-  if (isNaN(numero(salaId)) || !sala) return 'Elegí una sala existente.';
+  const sala = await salasModel.getSalaById(salaId);
+  if (!sala) return 'Elegí una sala existente.';
 
   // Se puede conservar una sala dada de baja al editar, pero no mudarse a una
-  const cambiaDeSala = !eventoActual || Number(salaId) !== eventoActual.salaId;
+  const cambiaDeSala = !eventoActual || String(salaId) !== String(eventoActual.salaId);
   if (cambiaDeSala && sala.estado !== 'ACTIVA') {
     return 'La sala "' + sala.nombre + '" está dada de baja: elegí una activa.';
   }
@@ -179,7 +179,7 @@ function validar({ nombre, fecha, salaId, precio }, eventoActual) {
 }
 
 // ¿Este evento admite venderle o reservarle una entrada a este cliente?
-function validarVenta(eventoId, clienteId) {
+async function validarVenta(eventoId, clienteId) {
   const evento = getEventoById(eventoId);
   if (!evento) return { error: 'El evento indicado no existe.' };
   if (evento.estado !== 'PROGRAMADO') {
@@ -188,7 +188,7 @@ function validarVenta(eventoId, clienteId) {
 
   if (!clientesModel.getById(clienteId)) return { error: 'El cliente indicado no existe.' };
 
-  const sala = salasModel.getSalaById(evento.salaId);
+  const sala = await salasModel.getSalaById(evento.salaId);
   if (!sala) return { error: 'El evento no tiene una sala válida asociada.' };
   if (sala.estado !== 'ACTIVA') {
     return { error: 'La sala "' + sala.nombre + '" está dada de baja: no se pueden vender entradas.' };

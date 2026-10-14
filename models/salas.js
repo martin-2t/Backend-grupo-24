@@ -1,91 +1,120 @@
-const fs = require('fs');
-const path = require('path');
-const { SOLO_LETRAS, LARGO_MINIMO, texto, numero } = require('./formatos');
+const mongoose = require('mongoose');
+const { SOLO_LETRAS, LARGO_MINIMO } = require('./formatos');
 
-// Entidad Sala
-class Sala {
-  constructor(id, nombre, capacidad, direccion, estado = "ACTIVA") {
-    this.id = id;
-    this.nombre = nombre;
-    this.capacidad = capacidad;
-    this.direccion = direccion;
-    this.estado = estado;
-  }
+// Una sala chica no tiene sentido para el negocio: el mínimo es una regla del dominio
+const CAPACIDAD_MINIMA = 10;
+
+// Schema: la forma y las reglas de validación de cada documento de la colección "salas"
+const salaSchema = new mongoose.Schema(
+  {
+    nombre: {
+      type: String,
+      required: [true, 'El nombre de la sala es obligatorio.'],
+      trim: true,
+      // TODO: permitir números en el nombre (salas reales como "Estudio 33" hoy quedan rechazadas)
+      match: [SOLO_LETRAS, 'El nombre de la sala solo puede tener letras, sin números ni símbolos.'],
+      minlength: [LARGO_MINIMO, `El nombre de la sala debe tener al menos ${LARGO_MINIMO} caracteres.`],
+    },
+    direccion: {
+      type: String,
+      required: [true, 'La dirección es obligatoria.'],
+      trim: true,
+      minlength: [LARGO_MINIMO, `La dirección debe tener al menos ${LARGO_MINIMO} caracteres.`],
+    },
+    capacidad: {
+      type: Number,
+      cast: 'La capacidad debe ser un número entero.',
+      required: [true, 'La capacidad es obligatoria.'],
+      min: [CAPACIDAD_MINIMA, `La capacidad no puede ser menor a ${CAPACIDAD_MINIMA} localidades.`],
+      validate: {
+        validator: Number.isInteger,
+        message: 'La capacidad debe ser un número entero.',
+      },
+    },
+    estado: {
+      type: String,
+      enum: ['ACTIVA', 'INACTIVA'],
+      default: 'ACTIVA',
+    },
+  },
+  { versionKey: false }
+);
+
+// Model: la clase con la que se consulta y se guarda en la colección "salas"
+const Sala = mongoose.model('Sala', salaSchema);
+
+async function getAllSalas() {
+  return Sala.find();
 }
 
-const filePath = path.join(__dirname, '..', 'data', 'salas.json');
-
-function getAllSalas() {
-  const raw = fs.readFileSync(filePath, 'utf-8');
-  return JSON.parse(raw);
+async function contarSalas() {
+  return Sala.countDocuments();
 }
 
-function getSalaById(id) {
-  return getAllSalas().find((s) => s.id === Number(id));
+// Un id que ni siquiera tiene formato de ObjectId no puede existir: devolvemos null
+// (como "no encontrada") en lugar de dejar que Mongoose lance un CastError
+async function getSalaById(id) {
+  if (!mongoose.isObjectIdOrHexString(id)) return null;
+  return Sala.findById(id);
 }
 
-function getSalaByName(nombre) {
-  return getAllSalas().find((s) => s.nombre.toLowerCase() === String(nombre).toLowerCase());
+// Búsqueda exacta sin distinguir mayúsculas de minúsculas (strength 2 de la collation)
+async function getSalaByName(nombre) {
+  return Sala.findOne({ nombre: String(nombre).trim() }).collation({ locale: 'es', strength: 2 });
 }
 
-function createSala(data) {
-  const salas = getAllSalas();
-  const nuevoId = salas.length ? Math.max(...salas.map((s) => s.id)) + 1 : 1;
-  const nuevaSala = new Sala(nuevoId, data.nombre, data.capacidad, data.direccion);
-  salas.push(nuevaSala);
-  fs.writeFileSync(filePath, JSON.stringify(salas, null, 2), 'utf-8');
-  return nuevaSala;
+async function createSala({ nombre, capacidad, direccion }) {
+  return Sala.create({ nombre, capacidad, direccion });
 }
 
-function updateSalaById(id, data) {
-  const salas = getAllSalas();
-  const idx = salas.findIndex((s) => s.id === Number(id));
-  if (idx === -1) return null;
+// Actualización parcial: solo se pisan los campos que vinieron definidos
+async function updateSalaById(id, data) {
+  const sala = await getSalaById(id);
+  if (!sala) return null;
 
   const cambios = Object.fromEntries(
     Object.entries(data).filter(([, valor]) => valor !== undefined)
   );
 
-  salas[idx] = { ...salas[idx], ...cambios, id: salas[idx].id };
-  fs.writeFileSync(filePath, JSON.stringify(salas, null, 2), 'utf-8');
-  return salas[idx];
+  sala.set(cambios);
+  return sala.save();
 }
 
-function toggleSalaById(id) {
-  const salas = getAllSalas();
-  const idx = salas.findIndex((s) => s.id === Number(id));
-  if (idx === -1) return null;
+// Borrado lógico: alterna entre ACTIVA e INACTIVA
+async function toggleSalaById(id) {
+  const sala = await getSalaById(id);
+  if (!sala) return null;
 
-  salas[idx].estado = salas[idx].estado === "ACTIVA" ? "INACTIVA" : "ACTIVA";
-  fs.writeFileSync(filePath, JSON.stringify(salas, null, 2), 'utf-8');
-  return salas[idx];
-}
-
-
-// Una sala chica no tiene sentido para el negocio: el mínimo es una regla del dominio
-const CAPACIDAD_MINIMA = 10;
-
-// Qué hace válida a una sala. Devuelve el motivo del rechazo, o null si está bien.
-function validar({ nombre, capacidad, direccion }) {
-  const n = texto(nombre);
-  if (!n) return 'El nombre de la sala es obligatorio.';
-  if (!SOLO_LETRAS.test(n)) return 'El nombre de la sala solo puede tener letras, sin números ni símbolos.';
-  if (n.length < LARGO_MINIMO) return 'El nombre de la sala debe tener al menos ' + LARGO_MINIMO + ' caracteres.';
-
-  const d = texto(direccion);
-  if (!d) return 'La dirección es obligatoria.';
-  if (d.length < LARGO_MINIMO) return 'La dirección debe tener al menos ' + LARGO_MINIMO + ' caracteres.';
-
-  const c = numero(capacidad);
-  if (isNaN(c) || !Number.isInteger(c)) return 'La capacidad debe ser un número entero.';
-  if (c < CAPACIDAD_MINIMA) return 'La capacidad no puede ser menor a ' + CAPACIDAD_MINIMA + ' localidades.';
-
-  return null;
+  sala.estado = sala.estado === 'ACTIVA' ? 'INACTIVA' : 'ACTIVA';
+  return sala.save();
 }
 
 // Las salas que pueden recibir eventos nuevos
-function activas() {
-  return getAllSalas().filter((s) => s.estado === 'ACTIVA');
+async function activas() {
+  return Sala.find({ estado: 'ACTIVA' });
 }
 
-module.exports = { CAPACIDAD_MINIMA, validar, activas, getAllSalas, getSalaById, getSalaByName, createSala, updateSalaById, toggleSalaById };
+// Valida contra el Schema sin guardar. Devuelve el primer motivo de rechazo, o null.
+async function validar({ nombre, capacidad, direccion }) {
+  try {
+    await new Sala({ nombre, capacidad, direccion }).validate();
+    return null;
+  } catch (error) {
+    if (error.name !== 'ValidationError') throw error;
+    return Object.values(error.errors)[0].message;
+  }
+}
+
+module.exports = {
+  Sala,
+  CAPACIDAD_MINIMA,
+  validar,
+  activas,
+  contarSalas,
+  getAllSalas,
+  getSalaById,
+  getSalaByName,
+  createSala,
+  updateSalaById,
+  toggleSalaById,
+};

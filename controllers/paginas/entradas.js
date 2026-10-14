@@ -27,64 +27,76 @@ function listar(req, res) {
   });
 }
 
-function datosFormularioEntrada(seleccionado) {
+async function datosFormularioEntrada(seleccionado) {
   return {
-    eventos: eventosModel.programados().map(enriquecerEvento),
+    eventos: await Promise.all(eventosModel.programados().map(enriquecerEvento)),
     clientes: clientesModel.getAll(),
     seleccionado: seleccionado ? String(seleccionado) : '',
   };
 }
 
-function nuevoForm(req, res) {
-  res.render('entradas/form', {
-    titulo: 'Vender o reservar entrada',
-    ...datosFormularioEntrada(req.query.evento),
-    valores: {},
-    error: null,
-  });
-}
-
-function crear(req, res) {
-  // El botón que apretaron manda "accion": vender deja VALIDA, reservar deja RESERVADA
-  const { eventoId, clienteId, accion } = req.body;
-  const reservar = accion === 'reservar';
-
-  function fallar(mensaje) {
-    return res.status(400).render('entradas/form', {
+async function nuevoForm(req, res, next) {
+  try {
+    res.render('entradas/form', {
       titulo: 'Vender o reservar entrada',
-      ...datosFormularioEntrada(eventoId),
-      valores: req.body,
-      error: mensaje,
+      ...(await datosFormularioEntrada(req.query.evento)),
+      valores: {},
+      error: null,
     });
+  } catch (error) {
+    next(error);
   }
-
-  if (isNaN(numero(eventoId))) return fallar('Elegí un evento.');
-  if (isNaN(numero(clienteId))) return fallar('Elegí un cliente.');
-
-  const chequeo = eventosModel.validarVenta(Number(eventoId), Number(clienteId));
-  if (chequeo.error) return fallar(chequeo.error);
-
-  const nueva = entradasModel.createEntrada({
-    eventoId: Number(eventoId),
-    clienteId: Number(clienteId),
-    precio: chequeo.evento.precio,
-    estado: reservar ? 'RESERVADA' : 'VALIDA',
-  });
-
-  volver(res, '/panel/entradas/' + nueva.id, reservar ? 'Reserva registrada.' : 'Venta registrada.');
 }
 
-function detalle(req, res, next) {
-  const entrada = entradasModel.getEntradaById(req.params.id);
-  if (!entrada) return next();
+async function crear(req, res, next) {
+  try {
+    // El botón que apretaron manda "accion": vender deja VALIDA, reservar deja RESERVADA
+    const { eventoId, clienteId, accion } = req.body;
+    const reservar = accion === 'reservar';
 
-  const evento = eventosModel.getEventoById(entrada.eventoId);
-  res.render('entradas/detail', {
-    titulo: 'Entrada #' + entrada.id,
-    entrada: enriquecerEntrada(entrada),
-    evento: evento ? enriquecerEvento(evento) : null,
-    cliente: clientesModel.getById(entrada.clienteId),
-  });
+    async function fallar(mensaje) {
+      return res.status(400).render('entradas/form', {
+        titulo: 'Vender o reservar entrada',
+        ...(await datosFormularioEntrada(eventoId)),
+        valores: req.body,
+        error: mensaje,
+      });
+    }
+
+    if (isNaN(numero(eventoId))) return fallar('Elegí un evento.');
+    if (isNaN(numero(clienteId))) return fallar('Elegí un cliente.');
+
+    const chequeo = await eventosModel.validarVenta(Number(eventoId), Number(clienteId));
+    if (chequeo.error) return fallar(chequeo.error);
+
+    const nueva = entradasModel.createEntrada({
+      eventoId: Number(eventoId),
+      clienteId: Number(clienteId),
+      precio: chequeo.evento.precio,
+      estado: reservar ? 'RESERVADA' : 'VALIDA',
+    });
+
+    volver(res, '/panel/entradas/' + nueva.id, reservar ? 'Reserva registrada.' : 'Venta registrada.');
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function detalle(req, res, next) {
+  try {
+    const entrada = entradasModel.getEntradaById(req.params.id);
+    if (!entrada) return next();
+
+    const evento = eventosModel.getEventoById(entrada.eventoId);
+    res.render('entradas/detail', {
+      titulo: 'Entrada #' + entrada.id,
+      entrada: enriquecerEntrada(entrada),
+      evento: evento ? await enriquecerEvento(evento) : null,
+      cliente: clientesModel.getById(entrada.clienteId),
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
 function confirmar(req, res, next) {

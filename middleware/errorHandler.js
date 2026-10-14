@@ -1,14 +1,37 @@
-// Captura los errores no manejados y responde 500, en HTML o en JSON según el origen.
+// Captura los errores que los controllers pasan con next(err) y responde según el tipo,
+// en HTML para el panel o en JSON para la API.
 function errorHandler(err, req, res, next) {
-  console.error(err.stack);
+  let status = 500;
+  let mensaje = 'Error interno del servidor';
 
-  const ruta = req.originalUrl.split('?')[0];
-
-  if (ruta.startsWith('/panel')) {
-    return res.status(500).render('error', { titulo: 'Error interno' });
+  // Mongoose: el documento no cumple las reglas del Schema
+  if (err.name === 'ValidationError') {
+    status = 400;
+    mensaje = Object.values(err.errors)[0].message;
   }
 
-  res.status(500).json({ error: 'Error interno del servidor' });
+  // Mongoose: un valor no se pudo convertir al tipo esperado (por ejemplo, un id mal formado)
+  if (err.name === 'CastError') {
+    status = 400;
+    mensaje = 'El valor "' + err.value + '" no tiene un formato válido.';
+  }
+
+  // express.json(): el body no es un JSON válido. Es un error del cliente, no del servidor
+  if (err.type === 'entity.parse.failed') {
+    status = 400;
+    mensaje = 'El cuerpo de la petición no es un JSON válido.';
+  }
+
+  if (status === 500) {
+    console.error(err.stack);
+  }
+
+  const ruta = req.originalUrl.split('?')[0];
+  if (ruta.startsWith('/panel')) {
+    return res.status(status).render('error', { titulo: 'Error' });
+  }
+
+  res.status(status).json({ error: mensaje });
 }
 
 module.exports = errorHandler;

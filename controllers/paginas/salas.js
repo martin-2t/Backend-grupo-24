@@ -3,19 +3,23 @@ const salasModel = require('../../models/salas');
 const eventosModel = require('../../models/eventos');
 const { volver, volverConError, enriquecerEvento } = require('./comunes');
 
-function listar(req, res) {
-  const busqueda = req.query.q ? String(req.query.q).trim() : '';
-  let salas = salasModel.getAllSalas();
-  let sinResultado = false;
+async function listar(req, res, next) {
+  try {
+    const busqueda = req.query.q ? String(req.query.q).trim() : '';
+    let salas = await salasModel.getAllSalas();
+    let sinResultado = false;
 
-  // Búsqueda exacta, igual que GET /salas/nombre/:nombre
-  if (busqueda) {
-    const encontrada = salasModel.getSalaByName(busqueda);
-    salas = encontrada ? [encontrada] : [];
-    sinResultado = !encontrada;
+    // Búsqueda exacta, igual que GET /salas/nombre/:nombre
+    if (busqueda) {
+      const encontrada = await salasModel.getSalaByName(busqueda);
+      salas = encontrada ? [encontrada] : [];
+      sinResultado = !encontrada;
+    }
+
+    res.render('salas/list', { titulo: 'Salas', salas, busqueda, sinResultado });
+  } catch (error) {
+    next(error);
   }
-
-  res.render('salas/list', { titulo: 'Salas', salas, busqueda, sinResultado });
 }
 
 function nuevoForm(req, res) {
@@ -27,77 +31,100 @@ function nuevoForm(req, res) {
   });
 }
 
-function crear(req, res) {
-  const error = salasModel.validar(req.body);
-  if (error) {
-    return res.status(400).render('salas/form', {
-      titulo: 'Nueva sala',
-      sala: req.body,
-      accion: '/panel/salas/nueva',
-      error,
-    });
+async function crear(req, res, next) {
+  try {
+    const error = await salasModel.validar(req.body);
+    if (error) {
+      return res.status(400).render('salas/form', {
+        titulo: 'Nueva sala',
+        sala: req.body,
+        accion: '/panel/salas/nueva',
+        error,
+      });
+    }
+
+    const { nombre, capacidad, direccion } = req.body;
+    const nueva = await salasModel.createSala({ nombre, capacidad: Number(capacidad), direccion });
+    volver(res, '/panel/salas/' + nueva.id, 'Sala creada correctamente.');
+  } catch (error) {
+    next(error);
   }
-
-  const { nombre, capacidad, direccion } = req.body;
-  const nueva = salasModel.createSala({ nombre, capacidad: Number(capacidad), direccion });
-  volver(res, '/panel/salas/' + nueva.id, 'Sala creada correctamente.');
 }
 
-function detalle(req, res, next) {
-  const sala = salasModel.getSalaById(req.params.id);
-  if (!sala) return next();
+async function detalle(req, res, next) {
+  try {
+    const sala = await salasModel.getSalaById(req.params.id);
+    if (!sala) return next();
 
-  const eventos = eventosModel
-    .getAllEventos()
-    .filter((e) => e.salaId === sala.id)
-    .map(enriquecerEvento);
+    // Los eventos todavía guardan salaId como texto: comparamos como texto
+    const eventosDeLaSala = (await eventosModel.getAllEventos())
+      .filter((e) => String(e.salaId) === sala.id);
+    // enriquecerEvento es async: Promise.all espera a que terminen todos
+    const eventos = await Promise.all(eventosDeLaSala.map(enriquecerEvento));
 
-  res.render('salas/detail', { titulo: sala.nombre, sala, eventos });
+    res.render('salas/detail', { titulo: sala.nombre, sala, eventos });
+  } catch (error) {
+    next(error);
+  }
 }
 
-function editarForm(req, res, next) {
-  const sala = salasModel.getSalaById(req.params.id);
-  if (!sala) return next();
+async function editarForm(req, res, next) {
+  try {
+    const sala = await salasModel.getSalaById(req.params.id);
+    if (!sala) return next();
 
-  res.render('salas/form', {
-    titulo: 'Editar ' + sala.nombre,
-    sala,
-    accion: '/panel/salas/' + sala.id + '/editar',
-    error: null,
-  });
-}
-
-function actualizar(req, res, next) {
-  const sala = salasModel.getSalaById(req.params.id);
-  if (!sala) return next();
-
-  const error = salasModel.validar(req.body) ||
-    eventosModel.validarCapacidadDeSala(sala.id, req.body.capacidad);
-  if (error) {
-    return res.status(400).render('salas/form', {
+    res.render('salas/form', {
       titulo: 'Editar ' + sala.nombre,
-      sala: { ...req.body, id: sala.id },
+      sala,
       accion: '/panel/salas/' + sala.id + '/editar',
-      error,
+      error: null,
     });
+  } catch (error) {
+    next(error);
   }
+}
 
-  const { nombre, capacidad, direccion } = req.body;
-  salasModel.updateSalaById(sala.id, { nombre, capacidad: Number(capacidad), direccion });
-  volver(res, '/panel/salas/' + sala.id, 'Sala actualizada.');
+async function actualizar(req, res, next) {
+  try {
+    const sala = await salasModel.getSalaById(req.params.id);
+    if (!sala) return next();
+
+    const error =
+      (await salasModel.validar(req.body)) ||
+      (await eventosModel.validarCapacidadDeSala(sala.id, req.body.capacidad));
+    if (error) {
+      return res.status(400).render('salas/form', {
+        titulo: 'Editar ' + sala.nombre,
+        sala: { ...req.body, id: sala.id },
+        accion: '/panel/salas/' + sala.id + '/editar',
+        error,
+      });
+    }
+
+    const { nombre, capacidad, direccion } = req.body;
+    await salasModel.updateSalaById(sala.id, { nombre, capacidad: Number(capacidad), direccion });
+    volver(res, '/panel/salas/' + sala.id, 'Sala actualizada.');
+  } catch (error) {
+    next(error);
+  }
 }
 
 // Baja o alta lógica de la sala
-function cambiarEstado(req, res, next) {
-  const sala = salasModel.getSalaById(req.params.id);
-  if (!sala) return next();
+async function cambiarEstado(req, res, next) {
+  try {
+    const sala = await salasModel.getSalaById(req.params.id);
+    if (!sala) return next();
 
-  const impedimento = eventosModel.validarCambioDeEstadoDeSala(sala);
-  if (impedimento) {
-    return volverConError(res, '/panel/salas/' + sala.id, impedimento);
+    const impedimento = await eventosModel.validarCambioDeEstadoDeSala(sala);
+    if (impedimento) {
+      return volverConError(res, '/panel/salas/' + sala.id, impedimento);
+    }
+
+    const actualizada = await salasModel.toggleSalaById(sala.id);
+    volver(res, '/panel/salas', 'La sala "' + actualizada.nombre + '" ahora está ' + actualizada.estado + '.');
+  } catch (error) {
+    next(error);
   }
-
-  const actualizada = salasModel.toggleSalaById(sala.id);
-  volver(res, '/panel/salas', 'La sala "' + actualizada.nombre + '" ahora está ' + actualizada.estado + '.');
 }
+
 module.exports = { listar, nuevoForm, crear, detalle, editarForm, actualizar, cambiarEstado };

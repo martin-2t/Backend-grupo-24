@@ -27,24 +27,28 @@ function entradasVendidas(req, res) {
 }
 
 // GET /consultas/entradas-disponibles/:eventoId
-function entradasDisponibles(req, res) {
-  const { eventoId } = req.params;
-  const evento = eventosModel.getEventoById(eventoId);
-  if (!evento) {
-    return res.status(404).json({ error: 'Evento no encontrado' });
+async function entradasDisponibles(req, res, next) {
+  try {
+    const { eventoId } = req.params;
+    const evento = eventosModel.getEventoById(eventoId);
+    if (!evento) {
+      return res.status(404).json({ error: 'Evento no encontrado' });
+    }
+
+    const sala = await salasModel.getSalaById(evento.salaId);
+    const ocupados = entradasModel.lugaresOcupados(eventoId);
+    const disponibles = Math.max(sala.capacidad - ocupados, 0);
+
+    return res.status(200).json({
+      eventoId: Number(eventoId),
+      evento: evento.nombre,
+      capacidadSala: sala.capacidad,
+      ocupados,
+      disponibles,
+    });
+  } catch (error) {
+    next(error);
   }
-
-  const sala = salasModel.getSalaById(evento.salaId);
-  const ocupados = entradasModel.lugaresOcupados(eventoId);
-  const disponibles = Math.max(sala.capacidad - ocupados, 0);
-
-  return res.status(200).json({
-    eventoId: Number(eventoId),
-    evento: evento.nombre,
-    capacidadSala: sala.capacidad,
-    ocupados,
-    disponibles,
-  });
 }
 
 // GET /consultas/eventos-proximos
