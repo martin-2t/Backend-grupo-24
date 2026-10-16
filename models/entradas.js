@@ -1,44 +1,63 @@
+// Model: la clase con la que se consulta y se guarda en la colección "entradas"
+const Entrada = mongoose.model('Entrada', entradaSchema);
 const fs = require('fs');
 const path = require('path');
 
-// Entidad Entrada
-// estado: RESERVADA (reserva temporal, ocupa lugar) | VALIDA (vendida) | CANCELADA (libera el lugar)
-class Entrada {
-  constructor(id, eventoId, clienteId, precio, estado = "VALIDA") {
-    this.id = id;
-    this.eventoId = eventoId;
-    this.clienteId = clienteId;
-    this.precio = precio;
-    this.estado = estado;
-  }
-}
+const mongoose = require('mongoose');
+
+// Schema: la forma y las reglas de validación de cada documento de la colección "entradas"
+const entradaSchema = new mongoose.Schema(
+  {
+    eventoId: {
+      type: Number,
+      cast: 'El campo "eventoId" debe ser un número.',
+      required: [true, 'El campo "eventoId" es obligatorio.'],
+    },
+    clienteId: {
+      type: Number,
+      cast: 'El campo "clienteId" debe ser un número.',
+      required: [true, 'El campo "clienteId" es obligatorio.'],
+    },
+    precio: {
+      type: Number,
+      cast: 'El precio debe ser un número.',
+      required: [true, 'El precio es obligatorio.'],
+      min: [0, 'El precio no puede ser negativo.'],
+    },
+    estado: {
+      type: String,
+      enum: {
+        values: ['VALIDA', 'RESERVADA', 'CANCELADA'],
+        message: 'El estado debe ser VALIDA, RESERVADA o CANCELADA.',
+      },
+      default: 'VALIDA',
+    },
+  },
+  { versionKey: false }
+);
 
 const filePath = path.join(__dirname, '..', 'data', 'entradas.json');
 
-// Devuelve array de todas las entradas
-function getAllEntradas() {
-  const raw = fs.readFileSync(filePath, 'utf-8');
-  return JSON.parse(raw);
+// Devuelve todas las entradas
+async function getAllEntradas() {
+  return Entrada.find();
 }
 
-// Devuelve una entrada puntual por id
-function getEntradaById(id) {
-  return getAllEntradas().find((e) => e.id === Number(id));
+//Devuelve una entrada puntual por id. Un id que no tiene formato de ObjectId
+//no puede existir: devolvemos null (como "no encontrada") en vez de un CastError
+async function getEntradaById(id) {
+  if (!mongoose.isObjectIdOrHexString(id)) return null;
+  return Entrada.findById(id);
 }
 
-// Entradas de un evento en particular (todas, sin filtrar por estado)
-function getEntradasByEvento(eventoId) {
-  return getAllEntradas().filter((e) => e.eventoId === Number(eventoId));
+//Entradas de un evento en particular (todas, sin filtrar por estado)
+async function getEntradasByEvento(eventoId) {
+  return Entrada.find({ eventoId: Number(eventoId) });
 }
 
 // Crea una entrada (reserva o venta directa, según el estado que le pase el controller)
-function createEntrada(data) {
-  const entradas = getAllEntradas();
-  const nuevoId = entradas.length ? Math.max(...entradas.map((e) => e.id)) + 1 : 1;
-  const nuevaEntrada = new Entrada(nuevoId, data.eventoId, data.clienteId, data.precio, data.estado);
-  entradas.push(nuevaEntrada);
-  fs.writeFileSync(filePath, JSON.stringify(entradas, null, 2), 'utf-8');
-  return nuevaEntrada;
+async function createEntrada({ eventoId, clienteId, precio, estado }) {
+  return Entrada.create({ eventoId, clienteId, precio, estado });
 }
 
 // Actualiza una entrada por id (uso general: cambia solo los campos definidos)
