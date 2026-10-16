@@ -5,26 +5,30 @@ const clientesModel = require('../../models/clientes');
 const { numero } = require('../../models/formatos');
 const { volver, volverConError, enriquecerEvento, enriquecerEntrada } = require('./comunes');
 
-function listar(req, res) {
-  const filtros = {
-    evento: req.query.evento || '',
-    cliente: req.query.cliente || '',
-    estado: req.query.estado || '',
-  };
+async function listar(req, res, next) {
+  try {
+    const filtros = {
+      evento: req.query.evento || '',
+      cliente: req.query.cliente || '',
+      estado: req.query.estado || '',
+    };
 
-  let entradas = entradasModel.getAllEntradas();
-  if (filtros.evento) entradas = entradas.filter((e) => e.eventoId === Number(filtros.evento));
-  if (filtros.cliente) entradas = entradas.filter((e) => e.clienteId === Number(filtros.cliente));
-  if (filtros.estado) entradas = entradas.filter((e) => e.estado === filtros.estado);
+    let entradas = await entradasModel.getAllEntradas();
+    if (filtros.evento) entradas = entradas.filter((e) => e.eventoId === Number(filtros.evento));
+    if (filtros.cliente) entradas = entradas.filter((e) => e.clienteId === Number(filtros.cliente));
+    if (filtros.estado) entradas = entradas.filter((e) => e.estado === filtros.estado);
 
-  res.render('entradas/list', {
-    titulo: 'Entradas',
-    entradas: entradas.map(enriquecerEntrada),
-    filtros,
-    eventos: eventosModel.getAllEventos(),
-    clientes: clientesModel.getAll(),
-    estados: ['VALIDA', 'RESERVADA', 'CANCELADA'],
-  });
+    res.render('entradas/list', {
+      titulo: 'Entradas',
+      entradas: entradas.map(enriquecerEntrada),
+      filtros,
+      eventos: eventosModel.getAllEventos(),
+      clientes: clientesModel.getAll(),
+      estados: ['VALIDA', 'RESERVADA', 'CANCELADA'],
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
 async function datosFormularioEntrada(seleccionado) {
@@ -69,7 +73,7 @@ async function crear(req, res, next) {
     const chequeo = await eventosModel.validarVenta(Number(eventoId), Number(clienteId));
     if (chequeo.error) return fallar(chequeo.error);
 
-    const nueva = entradasModel.createEntrada({
+    const nueva = await entradasModel.createEntrada({
       eventoId: Number(eventoId),
       clienteId: Number(clienteId),
       precio: chequeo.evento.precio,
@@ -99,50 +103,66 @@ async function detalle(req, res, next) {
   }
 }
 
-function confirmar(req, res, next) {
-  const entrada = entradasModel.getEntradaById(req.params.id);
-  if (!entrada) return next();
+async function confirmar(req, res, next) {
+  try {
+    const entrada = await entradasModel.getEntradaById(req.params.id);
+    if (!entrada) return next();
 
-  const impedimento = entradasModel.validarConfirmacion(entrada);
-  if (impedimento) {
-    return volverConError(res, '/panel/entradas/' + entrada.id, impedimento);
+    const impedimento = entradasModel.validarConfirmacion(entrada);
+    if (impedimento) {
+      return volverConError(res, '/panel/entradas/' + entrada.id, impedimento);
+    }
+
+    await entradasModel.updateEntradaById(entrada.id, { estado: 'VALIDA' });
+    volver(res, '/panel/entradas/' + entrada.id, 'Reserva confirmada: la entrada quedó vendida.');
+  } catch (error) {
+    next(error);
   }
-
-  entradasModel.updateEntradaById(entrada.id, { estado: 'VALIDA' });
-  volver(res, '/panel/entradas/' + entrada.id, 'Reserva confirmada: la entrada quedó vendida.');
 }
 
-function cancelar(req, res, next) {
-  const entrada = entradasModel.getEntradaById(req.params.id);
-  if (!entrada) return next();
+async function cancelar(req, res, next) {
+  try {
+    const entrada = await entradasModel.getEntradaById(req.params.id);
+    if (!entrada) return next();
 
-  const impedimento = entradasModel.validarCancelacion(entrada);
-  if (impedimento) {
-    return volverConError(res, '/panel/entradas/' + entrada.id, impedimento);
+    const impedimento = entradasModel.validarCancelacion(entrada);
+    if (impedimento) {
+      return volverConError(res, '/panel/entradas/' + entrada.id, impedimento);
+    }
+
+    await entradasModel.updateEntradaById(entrada.id, { estado: 'CANCELADA' });
+    volver(res, '/panel/entradas/' + entrada.id, 'Entrada cancelada: el lugar quedó liberado.');
+  } catch (error) {
+    next(error);
   }
-
-  entradasModel.updateEntradaById(entrada.id, { estado: 'CANCELADA' });
-  volver(res, '/panel/entradas/' + entrada.id, 'Entrada cancelada: el lugar quedó liberado.');
 }
 
-function actualizarPrecio(req, res, next) {
-  const entrada = entradasModel.getEntradaById(req.params.id);
-  if (!entrada) return next();
+async function actualizarPrecio(req, res, next) {
+  try {
+    const entrada = await entradasModel.getEntradaById(req.params.id);
+    if (!entrada) return next();
 
-  const error = entradasModel.validarPrecio(req.body.precio);
-  if (error) {
-    return volverConError(res, '/panel/entradas/' + entrada.id, error);
+    const error = entradasModel.validarPrecio(req.body.precio);
+    if (error) {
+      return volverConError(res, '/panel/entradas/' + entrada.id, error);
+    }
+
+    await entradasModel.updateEntradaById(entrada.id, { precio: numero(req.body.precio) });
+    volver(res, '/panel/entradas/' + entrada.id, 'Precio actualizado.');
+  } catch (error) {
+    next(error);
   }
+}
+async function eliminar(req, res, next) {
+  try {
+    const entrada = await entradasModel.getEntradaById(req.params.id);
+    if (!entrada) return next();
 
-  entradasModel.updateEntradaById(entrada.id, { precio: numero(req.body.precio) });
-  volver(res, '/panel/entradas/' + entrada.id, 'Precio actualizado.');
+    await entradasModel.removeEntrada(entrada.id);
+    volver(res, '/panel/entradas', 'Entrada #' + entrada.id + ' eliminada.');
+  } catch (error) {
+    next(error);
+  }
 }
 
-function eliminar(req, res, next) {
-  const entrada = entradasModel.getEntradaById(req.params.id);
-  if (!entrada) return next();
-
-  entradasModel.removeEntrada(entrada.id);
-  volver(res, '/panel/entradas', 'Entrada #' + entrada.id + ' eliminada.');
-}
 module.exports = { listar, nuevoForm, crear, detalle, confirmar, cancelar, actualizarPrecio, eliminar };

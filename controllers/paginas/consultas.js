@@ -7,10 +7,10 @@ async function mostrar(req, res, next) {
   try {
     const resumen = await Promise.all(
       eventosModel.getAllEventos().map(async (evento) => {
-        const entradas = entradasModel.getEntradasByEvento(evento.id);
+        const entradas = await entradasModel.getEntradasByEvento(evento.id);
         return {
           ...(await enriquecerEvento(evento)),
-          ...entradasModel.contarPorEstado(entradas),
+          ...(await entradasModel.contarPorEstado(entradas)),
         };
       })
     );
