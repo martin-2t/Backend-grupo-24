@@ -1,0 +1,8 @@
+[
+  { "_id": "05e000000000000000000001", "nombre": "Admin Urbana Cult", "email": "admin@urbanacult.com", "password": "admin1234", "rol": "ADMIN" },
+  { "_id": "05e000000000000000000002", "nombre": "Lucía Fernández", "email": "empleado.flores@urbanacult.com", "password": "flores1234", "rol": "EMPLEADO", "salaId": "5a1a00000000000000000001" },
+  { "_id": "05e000000000000000000003", "nombre": "Diego Ramírez", "email": "empleado.usina@urbanacult.com", "password": "usina1234", "rol": "EMPLEADO", "salaId": "5a1a00000000000000000002" },
+  { "_id": "05e000000000000000000004", "nombre": "Sofía Torres", "email": "empleado.palermo@urbanacult.com", "password": "palermo1234", "rol": "EMPLEADO", "salaId": "5a1a00000000000000000003", "estado": "SUSPENDIDO" },
+  { "_id": "05e000000000000000000005", "nombre": "Juan Pérez", "email": "juanperez@mail.com", "password": "cliente1234", "rol": "CLIENTE", "clienteId": "5a1c00000000000000000001" },
+  { "_id": "05e000000000000000000006", "nombre": "Tomas Aguirre", "email": "tomasaguirre@mail.com", "password": "cliente1234", "rol": "CLIENTE", "clienteId": "5a1c00000000000000000002" }
+]

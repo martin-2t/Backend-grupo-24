@@ -171,6 +171,7 @@ form.simple input, form.simple select, form.simple textarea {
 .badge.PROGRAMADO, .badge.VALIDA, .badge.ACTIVA { background: #2f9e6e; }
 .badge.FINALIZADO, .badge.RESERVADA { background: #d99a2b; }
 .badge.CANCELADO, .badge.CANCELADA, .badge.INACTIVA { background: #d1483f; }
+.badge.ADMIN, .badge.EMPLEADO, .badge.CLIENTE { background: #147d7d; }
 /* ------------------------------------------------------------------ */
 /* Panel: avisos, barras de accion, botones y vistas de detalle        */
 /* ------------------------------------------------------------------ */

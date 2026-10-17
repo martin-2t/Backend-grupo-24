@@ -6,7 +6,13 @@ function mostrar(req, res) {
     version: '1.0.0',
     estado: 'ok',
     panel: '/panel',
+    autenticacion: {
+      login: 'POST /auth/login',
+      registro: 'POST /auth/registro',
+      usuarioActual: 'GET /auth/yo (header x-usuario-id)',
+    },
     recursos: {
+      usuarios: '/usuarios',
       clientes: '/clientes',
       salas: '/salas',
       eventos: '/eventos',
