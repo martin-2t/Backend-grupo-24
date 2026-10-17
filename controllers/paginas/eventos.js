@@ -65,7 +65,9 @@ async function detalle(req, res, next) {
     res.render('eventos/detail', {
       titulo: evento.nombre,
       evento: await enriquecerEvento(evento),
-      entradas: (await entradasModel.getEntradasByEvento(evento.id)).map(enriquecerEntrada),
+      entradas: await Promise.all(
+        (await entradasModel.getEntradasByEvento(evento.id)).map(enriquecerEntrada)
+      ),
       aArrastrar: (await eventosModel.entradasQueSeCancelan(evento.id)).length,
     });
   } catch (error) {

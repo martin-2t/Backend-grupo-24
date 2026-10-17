@@ -44,13 +44,17 @@ async function enriquecerEvento(evento) {
   };
 }
 
-function enriquecerEntrada(entrada) {
+// async porque el cliente se busca en MongoDB: quien la use debe hacer await
+// (o Promise.all si la aplica con map sobre una lista)
+async function enriquecerEntrada(entrada) {
   const evento = eventosModel.getEventoById(entrada.eventoId);
-  const cliente = clientesModel.getById(entrada.clienteId);
+  const cliente = await clientesModel.getById(entrada.clienteId);
   return {
     //La entrada ahora es un documento de mongoose: toObject() lo pasa a un objeto común
     //( virtuals: true, conserva "id", el _id como texto que se usan en las vistas)
     ...entrada.toObject({ virtuals: true }),
+    evento: evento ? evento.nombre : 'Evento eliminado',
+    cliente: cliente ? cliente.nombre + ' ' + cliente.apellido : 'Cliente eliminado',
   };
 }
 

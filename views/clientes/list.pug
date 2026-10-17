@@ -19,9 +19,9 @@ block content
       if clientes.length === 0
         tr
           td.vacio(colspan="6") Todavía no hay clientes cargados.
-      each cliente in clientes
+      each cliente, i in clientes
         tr
-          td= cliente.id
+          td= i + 1
           td
             a(href="/panel/clientes/" + cliente.id)= cliente.nombre
           td= cliente.apellido

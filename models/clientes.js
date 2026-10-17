@@ -1,92 +1,104 @@
-const fs = require('fs');
-const path = require('path');
-const { SOLO_LETRAS, SOLO_DIGITOS, EMAIL, texto } = require('./formatos');
+const mongoose = require('mongoose');
+const { SOLO_LETRAS, SOLO_DIGITOS, EMAIL } = require('./formatos');
 const entradasModel = require('./entradas');
 
-// Clase que representa a un Cliente. Definimos qué datos tiene cada cliente
-class Cliente {
-  constructor(id, nombre, apellido, email, telefono) {
-    this.id = id;
-    this.nombre = nombre;
-    this.apellido = apellido;
-    this.email = email;
-    this.telefono = telefono;
-  }
+const TELEFONO_MINIMO = 10;
+
+// El teléfono es opcional: un texto vacío (como llega desde el formulario del panel)
+// se guarda como "sin teléfono" en vez de fallar el minlength
+const vacioAUndefined = (valor) =>
+  typeof valor === 'string' && valor.trim() === '' ? undefined : valor;
+
+// Schema: la forma y las reglas de validación de cada documento de la colección "clientes"
+const clienteSchema = new mongoose.Schema(
+  {
+    nombre: {
+      type: String,
+      required: [true, 'El nombre es obligatorio.'],
+      trim: true,
+      match: [SOLO_LETRAS, 'El nombre solo puede tener letras, sin números ni símbolos.'],
+    },
+    apellido: {
+      type: String,
+      required: [true, 'El apellido es obligatorio.'],
+      trim: true,
+      match: [SOLO_LETRAS, 'El apellido solo puede tener letras, sin números ni símbolos.'],
+    },
+    email: {
+      type: String,
+      required: [true, 'El email es obligatorio.'],
+      trim: true,
+      match: [EMAIL, 'El email no tiene un formato válido.'],
+    },
+    telefono: {
+      type: String,
+      trim: true,
+      set: vacioAUndefined,
+      match: [SOLO_DIGITOS, 'El teléfono solo puede tener números, sin letras ni símbolos.'],
+      minlength: [TELEFONO_MINIMO, `El teléfono debe tener al menos ${TELEFONO_MINIMO} dígitos.`],
+    },
+  },
+  { versionKey: false }
+);
+
+// Model: la clase con la que se consulta y se guarda en la colección "clientes"
+const Cliente = mongoose.model('Cliente', clienteSchema);
+
+async function getAll() {
+  return Cliente.find();
 }
 
-// Arma la ruta absoluta al archivo clientes.json
-const filePath = path.join(__dirname, '..', 'data', 'clientes.json');
-
-// Lee todo el archivo clientes.json y devuelve el array de clientes
-function getAll() {
-  const raw = fs.readFileSync(filePath, 'utf-8');
-  return JSON.parse(raw);
+async function contarClientes() {
+  return Cliente.countDocuments();
 }
 
-// Busca un cliente puntual por su id
-function getById(id) {
-  return getAll().find((c) => c.id === Number(id));
+// Un id sin formato de ObjectId no puede existir: devolvemos null (404)
+// en lugar de dejar que Mongoose lance un CastError
+async function getById(id) {
+  if (!mongoose.isObjectIdOrHexString(id)) return null;
+  return Cliente.findById(id);
 }
 
-// Crea un nuevo cliente y lo guarda en el archivo
-function create(datos) {
-  const clientes = getAll();
-  const newId = clientes.length ? Math.max(...clientes.map((c) => c.id)) + 1 : 1;
-  const nuevo = new Cliente(newId, datos.nombre, datos.apellido, datos.email, datos.telefono);
-  clientes.push(nuevo);
-  fs.writeFileSync(filePath, JSON.stringify(clientes, null, 2), 'utf-8');
-  return nuevo;
+async function create({ nombre, apellido, email, telefono }) {
+  return Cliente.create({ nombre, apellido, email, telefono });
 }
 
-// Actualiza un cliente existente por id
-function update(id, cambios) {
-  const clientes = getAll();
-  const idx = clientes.findIndex((c) => c.id === Number(id));
-  if (idx === -1) return null;
+// Actualización parcial: solo se pisan los campos que vinieron definidos.
+// save() vuelve a validar el documento completo contra el Schema.
+async function update(id, cambios) {
+  const cliente = await getById(id);
+  if (!cliente) return null;
 
   const cambiosLimpios = Object.fromEntries(
     Object.entries(cambios).filter(([, valor]) => valor !== undefined)
   );
 
-  clientes[idx] = { ...clientes[idx], ...cambiosLimpios, id: clientes[idx].id };
-  fs.writeFileSync(filePath, JSON.stringify(clientes, null, 2), 'utf-8');
-  return clientes[idx];
+  cliente.set(cambiosLimpios);
+  return cliente.save();
 }
 
-// Elimina un cliente por id
-function remove(id) {
-  const clientes = getAll();
-  const idx = clientes.findIndex((c) => c.id === Number(id));
-  if (idx === -1) return false;
-
-  clientes.splice(idx, 1);
-  fs.writeFileSync(filePath, JSON.stringify(clientes, null, 2), 'utf-8');
-  return true;
+// Borrado físico. Devuelve true si existía, false si no
+async function remove(id) {
+  if (!mongoose.isObjectIdOrHexString(id)) return false;
+  const eliminado = await Cliente.findByIdAndDelete(id);
+  return eliminado !== null;
 }
 
+// Valida contra el Schema sin guardar. Devuelve el primer motivo de rechazo, o null.
+async function validar({ nombre, apellido, email, telefono }) {
+  try {
+    await new Cliente({ nombre, apellido, email, telefono }).validate();
+    return null;
+  } catch (error) {
+    if (error.name !== 'ValidationError') throw error;
+    return Object.values(error.errors)[0].message;
+  }
+}
 
-const TELEFONO_MINIMO = 10;
-
-// Qué hace válido a un cliente. Devuelve el motivo del rechazo, o null si está bien.
-function validar({ nombre, apellido, email, telefono }) {
-  const n = texto(nombre);
-  if (!n) return 'El nombre es obligatorio.';
-  if (!SOLO_LETRAS.test(n)) return 'El nombre solo puede tener letras, sin números ni símbolos.';
-
-  const a = texto(apellido);
-  if (!a) return 'El apellido es obligatorio.';
-  if (!SOLO_LETRAS.test(a)) return 'El apellido solo puede tener letras, sin números ni símbolos.';
-
-  const e = texto(email);
-  if (!e) return 'El email es obligatorio.';
-  if (!EMAIL.test(e)) return 'El email no tiene un formato válido.';
-
-  // El teléfono es opcional, pero si lo cargan tiene que ser válido
-  const t = texto(telefono);
-  if (t && !SOLO_DIGITOS.test(t)) return 'El teléfono solo puede tener números, sin letras ni símbolos.';
-  if (t && t.length < TELEFONO_MINIMO) return 'El teléfono debe tener al menos ' + TELEFONO_MINIMO + ' dígitos.';
-
-  return null;
+// clienteId en las entradas es un ObjectId: lo comparamos como texto
+async function entradasDelCliente(id) {
+  const entradas = await entradasModel.getAllEntradas();
+  return entradas.filter((e) => String(e.clienteId) === String(id));
 }
 
 // El borrado de cliente es físico: una entrada sin titular quedaría huérfana
@@ -95,9 +107,16 @@ async function tieneEntradasVigentes(id) {
   return entradas.some((e) => e.estado !== 'CANCELADA');
 }
 
-async function entradasDelCliente(id) {
-  const entradas = await entradasModel.getAllEntradas();
-  return entradas.filter((e) => e.clienteId === Number(id));
-}
-
-module.exports = { TELEFONO_MINIMO, validar, tieneEntradasVigentes, entradasDelCliente, getAll, getById, create, update, remove };
+module.exports = {
+  Cliente,
+  TELEFONO_MINIMO,
+  validar,
+  tieneEntradasVigentes,
+  entradasDelCliente,
+  contarClientes,
+  getAll,
+  getById,
+  create,
+  update,
+  remove,
+};

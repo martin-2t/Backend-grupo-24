@@ -15,15 +15,15 @@ async function listar(req, res, next) {
 
     let entradas = await entradasModel.getAllEntradas();
     if (filtros.evento) entradas = entradas.filter((e) => e.eventoId === Number(filtros.evento));
-    if (filtros.cliente) entradas = entradas.filter((e) => e.clienteId === Number(filtros.cliente));
+    if (filtros.cliente) entradas = entradas.filter((e) => String(e.clienteId) === filtros.cliente);
     if (filtros.estado) entradas = entradas.filter((e) => e.estado === filtros.estado);
 
     res.render('entradas/list', {
       titulo: 'Entradas',
-      entradas: entradas.map(enriquecerEntrada),
+      entradas: await Promise.all(entradas.map(enriquecerEntrada)),
       filtros,
       eventos: eventosModel.getAllEventos(),
-      clientes: clientesModel.getAll(),
+      clientes: await clientesModel.getAll(),
       estados: ['VALIDA', 'RESERVADA', 'CANCELADA'],
     });
   } catch (error) {
@@ -34,7 +34,7 @@ async function listar(req, res, next) {
 async function datosFormularioEntrada(seleccionado) {
   return {
     eventos: await Promise.all(eventosModel.programados().map(enriquecerEvento)),
-    clientes: clientesModel.getAll(),
+    clientes: await clientesModel.getAll(),
     seleccionado: seleccionado ? String(seleccionado) : '',
   };
 }
@@ -68,14 +68,14 @@ async function crear(req, res, next) {
     }
 
     if (isNaN(numero(eventoId))) return fallar('Elegí un evento.');
-    if (isNaN(numero(clienteId))) return fallar('Elegí un cliente.');
+    if (!clienteId || !(await clientesModel.getById(clienteId))) return fallar('Elegí un cliente.');
 
-    const chequeo = await eventosModel.validarVenta(Number(eventoId), Number(clienteId));
+    const chequeo = await eventosModel.validarVenta(Number(eventoId), clienteId);
     if (chequeo.error) return fallar(chequeo.error);
 
     const nueva = await entradasModel.createEntrada({
       eventoId: Number(eventoId),
-      clienteId: Number(clienteId),
+      clienteId,
       precio: chequeo.evento.precio,
       estado: reservar ? 'RESERVADA' : 'VALIDA',
     });
@@ -88,15 +88,15 @@ async function crear(req, res, next) {
 
 async function detalle(req, res, next) {
   try {
-    const entrada = entradasModel.getEntradaById(req.params.id);
+    const entrada = await entradasModel.getEntradaById(req.params.id);
     if (!entrada) return next();
 
     const evento = eventosModel.getEventoById(entrada.eventoId);
     res.render('entradas/detail', {
       titulo: 'Entrada #' + entrada.id,
-      entrada: enriquecerEntrada(entrada),
+      entrada: await enriquecerEntrada(entrada),
       evento: evento ? await enriquecerEvento(evento) : null,
-      cliente: clientesModel.getById(entrada.clienteId),
+      cliente: await clientesModel.getById(entrada.clienteId),
     });
   } catch (error) {
     next(error);

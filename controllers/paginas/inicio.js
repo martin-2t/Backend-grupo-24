@@ -6,12 +6,12 @@ const entradasModel = require('../../models/entradas');
 
 async function mostrar(req, res, next) {
   try {
-    const conteo = entradasModel.contarPorEstado();
+    const conteo = await entradasModel.contarPorEstado();
     res.render('index', {
       titulo: 'Panel Urbana Cult',
       totalEventos: eventosModel.getAllEventos().length,
       totalSalas: await salasModel.contarSalas(),
-      totalClientes: clientesModel.getAll().length,
+      totalClientes: await clientesModel.contarClientes(),
       entradasVendidas: conteo.vendidas,
       entradasReservadas: conteo.reservadas,
       proximos: eventosModel.getEventosProximos().slice(0, 3),
