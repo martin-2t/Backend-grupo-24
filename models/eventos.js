@@ -188,7 +188,7 @@ async function validarVenta(eventoId, clienteId) {
     return { error: 'El evento ya finalizó o fue cancelado: no admite nuevas entradas.' };
   }
 
-  if (!clientesModel.getById(clienteId)) return { error: 'El cliente indicado no existe.' };
+  if (!(await clientesModel.getById(clienteId))) return { error: 'El cliente indicado no existe.' };
 
   const sala = await salasModel.getSalaById(evento.salaId);
   if (!sala) return { error: 'El evento no tiene una sala válida asociada.' };
@@ -223,4 +223,3 @@ module.exports = {
   validar,
   validarVenta,
 }
-

@@ -12,9 +12,11 @@ const entradaSchema = new mongoose.Schema(
       cast: 'El campo "eventoId" debe ser un número.',
       required: [true, 'El campo "eventoId" es obligatorio.'],
     },
+    // El _id (ObjectId) de un cliente de MongoDB
     clienteId: {
-      type: Number,
-      cast: 'El campo "clienteId" debe ser un número.',
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Cliente',
+      cast: 'El campo "clienteId" no es un ID de cliente válido.',
       required: [true, 'El campo "clienteId" es obligatorio.'],
     },
     precio: {

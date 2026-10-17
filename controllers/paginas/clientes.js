@@ -3,8 +3,13 @@ const clientesModel = require('../../models/clientes');
 const entradasModel = require('../../models/entradas');
 const { volver, volverConError, enriquecerEntrada } = require('./comunes');
 
-function listar(req, res) {
-  res.render('clientes/list', { titulo: 'Clientes', clientes: clientesModel.getAll() });
+async function listar(req, res, next) {
+  try {
+    const clientes = await clientesModel.getAll();
+    res.render('clientes/list', { titulo: 'Clientes', clientes });
+  } catch (error) {
+    next(error);
+  }
 }
 
 function nuevoForm(req, res) {
@@ -16,74 +21,89 @@ function nuevoForm(req, res) {
   });
 }
 
-function crear(req, res) {
-  const error = clientesModel.validar(req.body);
-  if (error) {
-    return res.status(400).render('clientes/form', {
-      titulo: 'Nuevo cliente',
-      cliente: req.body,
-      accion: '/panel/clientes/nuevo',
-      error,
-    });
-  }
+async function crear(req, res, next) {
+  try {
+    const error = await clientesModel.validar(req.body);
+    if (error) {
+      return res.status(400).render('clientes/form', {
+        titulo: 'Nuevo cliente',
+        cliente: req.body,
+        accion: '/panel/clientes/nuevo',
+        error,
+      });
+    }
 
-  const { nombre, apellido, email, telefono } = req.body;
-  const nuevo = clientesModel.create({ nombre, apellido, email, telefono });
-  volver(res, '/panel/clientes/' + nuevo.id, 'Cliente creado correctamente.');
+    const { nombre, apellido, email, telefono } = req.body;
+    const nuevo = await clientesModel.create({ nombre, apellido, email, telefono });
+    volver(res, '/panel/clientes/' + nuevo.id, 'Cliente creado correctamente.');
+  } catch (error) {
+    next(error);
+  }
 }
 
 async function detalle(req, res, next) {
   try {
-    const cliente = clientesModel.getById(req.params.id);
+    const cliente = await clientesModel.getById(req.params.id);
     if (!cliente) return next();
 
     const entradas = await clientesModel.entradasDelCliente(cliente.id);
+    // enriquecerEntrada puede ser async: Promise.all espera a que terminen todas
+    const enriquecidas = await Promise.all(entradas.map(enriquecerEntrada));
+    const { vigentes } = await entradasModel.contarPorEstado(entradas);
 
     res.render('clientes/detail', {
       titulo: cliente.nombre + ' ' + cliente.apellido,
       cliente,
-      entradas: entradas.map(enriquecerEntrada),
-      vigentes: (await entradasModel.contarPorEstado(entradas)).vigentes,
+      entradas: enriquecidas,
+      vigentes,
     });
   } catch (error) {
     next(error);
   }
 }
 
-function editarForm(req, res, next) {
-  const cliente = clientesModel.getById(req.params.id);
-  if (!cliente) return next();
+async function editarForm(req, res, next) {
+  try {
+    const cliente = await clientesModel.getById(req.params.id);
+    if (!cliente) return next();
 
-  res.render('clientes/form', {
-    titulo: 'Editar ' + cliente.nombre + ' ' + cliente.apellido,
-    cliente,
-    accion: '/panel/clientes/' + cliente.id + '/editar',
-    error: null,
-  });
+    res.render('clientes/form', {
+      titulo: 'Editar ' + cliente.nombre + ' ' + cliente.apellido,
+      cliente,
+      accion: '/panel/clientes/' + cliente.id + '/editar',
+      error: null,
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
-function actualizar(req, res, next) {
-  const cliente = clientesModel.getById(req.params.id);
-  if (!cliente) return next();
+async function actualizar(req, res, next) {
+  try {
+    const cliente = await clientesModel.getById(req.params.id);
+    if (!cliente) return next();
 
-  const error = clientesModel.validar(req.body);
-  if (error) {
-    return res.status(400).render('clientes/form', {
-      titulo: 'Editar ' + cliente.nombre + ' ' + cliente.apellido,
-      cliente: { ...req.body, id: cliente.id },
-      accion: '/panel/clientes/' + cliente.id + '/editar',
-      error,
-    });
+    const error = await clientesModel.validar(req.body);
+    if (error) {
+      return res.status(400).render('clientes/form', {
+        titulo: 'Editar ' + cliente.nombre + ' ' + cliente.apellido,
+        cliente: { ...req.body, id: cliente.id },
+        accion: '/panel/clientes/' + cliente.id + '/editar',
+        error,
+      });
+    }
+
+    const { nombre, apellido, email, telefono } = req.body;
+    await clientesModel.update(cliente.id, { nombre, apellido, email, telefono });
+    volver(res, '/panel/clientes/' + cliente.id, 'Cliente actualizado.');
+  } catch (error) {
+    next(error);
   }
-
-  const { nombre, apellido, email, telefono } = req.body;
-  clientesModel.update(cliente.id, { nombre, apellido, email, telefono });
-  volver(res, '/panel/clientes/' + cliente.id, 'Cliente actualizado.');
 }
 
 async function eliminar(req, res, next) {
   try {
-    const cliente = clientesModel.getById(req.params.id);
+    const cliente = await clientesModel.getById(req.params.id);
     if (!cliente) return next();
 
     if (await clientesModel.tieneEntradasVigentes(cliente.id)) {
@@ -94,10 +114,11 @@ async function eliminar(req, res, next) {
       );
     }
 
-    clientesModel.remove(cliente.id);
+    await clientesModel.remove(cliente.id);
     volver(res, '/panel/clientes', 'Cliente eliminado.');
   } catch (error) {
     next(error);
   }
 }
+
 module.exports = { listar, nuevoForm, crear, detalle, editarForm, actualizar, eliminar };

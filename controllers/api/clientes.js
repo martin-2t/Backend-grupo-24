@@ -1,61 +1,64 @@
-// Las reglas de qué es un cliente válido viven en el model, así la API y el panel
+// Las reglas de qué es un cliente válido viven en el model (Schema), así la API y el panel
 // aplican exactamente las mismas. Acá solo traducimos a códigos HTTP.
+// Los errores de Mongoose (ValidationError, CastError) los traduce errorHandler a 400.
 const clientesModel = require('../../models/clientes');
 
 // devuelve todos los clientes
-function listar(req, res) {
-  res.status(200).json(clientesModel.getAll());
+async function listar(req, res, next) {
+  try {
+    res.status(200).json(await clientesModel.getAll());
+  } catch (error) {
+    next(error);
+  }
 }
 
 // devuelve un cliente puntual
-function obtener(req, res) {
-  const cliente = clientesModel.getById(req.params.id); // req.params.id viene de la URL
+async function obtener(req, res, next) {
+  try {
+    const cliente = await clientesModel.getById(req.params.id); // req.params.id viene de la URL
 
-  if (!cliente) {
-    return res.status(404).json({ error: 'Cliente no encontrado' });
+    if (!cliente) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    res.status(200).json(cliente);
+  } catch (error) {
+    next(error);
   }
-
-  res.status(200).json(cliente);
 }
 
 // crea un cliente nuevo
-function crear(req, res) {
-  const { nombre, apellido, email, telefono } = req.body;
-
-  const error = clientesModel.validar({ nombre, apellido, email, telefono });
-  if (error) {
-    return res.status(400).json({ error });
+async function crear(req, res, next) {
+  try {
+    const { nombre, apellido, email, telefono } = req.body;
+    const nuevo = await clientesModel.create({ nombre, apellido, email, telefono });
+    res.status(201).json(nuevo);
+  } catch (error) {
+    next(error);
   }
-
-  const nuevo = clientesModel.create({ nombre, apellido, email, telefono });
-  res.status(201).json(nuevo);
 }
 
 // actualiza un cliente existente
-function actualizar(req, res) {
-  const cliente = clientesModel.getById(req.params.id);
+async function actualizar(req, res, next) {
+  try {
+    const { nombre, apellido, email, telefono } = req.body;
+    // El PUT es parcial: el model pisa solo lo que vino y valida el cliente completo al guardar
+    const actualizado = await clientesModel.update(req.params.id, { nombre, apellido, email, telefono });
 
-  if (!cliente) {
-    return res.status(404).json({ error: 'Cliente no encontrado' });
+    if (!actualizado) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    res.status(200).json(actualizado);
+  } catch (error) {
+    next(error);
   }
-
-  // El PUT es parcial, así que validamos cómo quedaría el cliente después del
-  // cambio y no solo los campos que vinieron en el body
-  const error = clientesModel.validar({ ...cliente, ...req.body });
-  if (error) {
-    return res.status(400).json({ error });
-  }
-
-  const { nombre, apellido, email, telefono } = req.body;
-  const actualizado = clientesModel.update(req.params.id, { nombre, apellido, email, telefono });
-
-  res.status(200).json(actualizado);
 }
 
 // elimina un cliente
 async function eliminar(req, res, next) {
   try {
-    const cliente = clientesModel.getById(req.params.id);
+    const cliente = await clientesModel.getById(req.params.id);
 
     if (!cliente) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
@@ -68,7 +71,7 @@ async function eliminar(req, res, next) {
       });
     }
 
-    clientesModel.remove(cliente.id);
+    await clientesModel.remove(cliente.id);
     res.status(204).send();
   } catch (error) {
     next(error);

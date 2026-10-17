@@ -54,7 +54,7 @@ Equipo **Commit & Chill**:
 | Bravo, Julieta | Ampliación del panel Pug + validaciones y refactor a MVC |
 | Mazzitelli, Matías | Sala (CRUD + baja lógica) · Base para MongoDB (conexión, seed y manejo de errores), migración de Sala a MongoDB y alta de la base en MongoDB Atlas |
 | Piedrabuena, Julián | Entrada (CRUD) |
-| Savia, Martín | Cliente (CRUD) + coordinación del equipo |
+| Savia, Martín | Cliente (CRUD) + coordinación del equipo + Cliente (CRUD) · migración de Cliente a MongoDB (Schema con Mongoose y validaciones, seed, vínculo con Entrada mediante clienteId como ObjectId) |
 
 ## Stack técnico
 
