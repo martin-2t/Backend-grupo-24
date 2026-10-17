@@ -11,10 +11,12 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const conectarDB = require('../config/db');
 const { Sala } = require('../models/salas');
+const { Entrada } = require('../models/entradas');
 
 // Cada entidad que se migre a Mongo agrega aquí su model y su archivo de datos
 const colecciones = [
   { model: Sala, archivo: 'salas.json' },
+  { model: Entrada, archivo: 'entradas.json' },
 ];
 
 function leerDatos(archivo) {

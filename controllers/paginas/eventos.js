@@ -65,8 +65,8 @@ async function detalle(req, res, next) {
     res.render('eventos/detail', {
       titulo: evento.nombre,
       evento: await enriquecerEvento(evento),
-      entradas: entradasModel.getEntradasByEvento(evento.id).map(enriquecerEntrada),
-      aArrastrar: eventosModel.entradasQueSeCancelan(evento.id).length,
+      entradas: (await entradasModel.getEntradasByEvento(evento.id)).map(enriquecerEntrada),
+      aArrastrar: (await eventosModel.entradasQueSeCancelan(evento.id)).length,
     });
   } catch (error) {
     next(error);
@@ -133,25 +133,30 @@ function finalizar(req, res, next) {
   volver(res, '/panel/eventos/' + evento.id, 'Evento marcado como finalizado.');
 }
 
-function cancelar(req, res, next) {
-  const evento = eventosModel.getEventoById(req.params.id);
-  if (!evento) return next();
+async function cancelar(req, res, next) {
+  try {
+    const evento = eventosModel.getEventoById(req.params.id);
+    if (!evento) return next();
 
-  const impedimento = eventosModel.validarCancelacion(evento);
-  if (impedimento) {
-    return volverConError(res, '/panel/eventos/' + evento.id, impedimento);
+    const impedimento = eventosModel.validarCancelacion(evento);
+    if (impedimento) {
+      return volverConError(res, '/panel/eventos/' + evento.id, impedimento);
+    }
+
+    const arrastradas = (await eventosModel.entradasQueSeCancelan(evento.id)).length;
+    await eventosModel.cancelarEvento(evento.id);
+
+    let aviso = 'Evento cancelado.';
+    if (arrastradas === 1) {
+      aviso = 'Evento cancelado. También se canceló 1 entrada.';
+    } else if (arrastradas > 1) {
+      aviso = 'Evento cancelado. También se cancelaron ' + arrastradas + ' entradas.';
+    }
+
+    volver(res, '/panel/eventos/' + evento.id, aviso);
+  } catch (error) {
+    next(error);
   }
-
-  const arrastradas = eventosModel.entradasQueSeCancelan(evento.id).length;
-  eventosModel.cancelarEvento(evento.id);
-
-  let aviso = 'Evento cancelado.';
-  if (arrastradas === 1) {
-    aviso = 'Evento cancelado. También se canceló 1 entrada.';
-  } else if (arrastradas > 1) {
-    aviso = 'Evento cancelado. También se cancelaron ' + arrastradas + ' entradas.';
-  }
-
-  volver(res, '/panel/eventos/' + evento.id, aviso);
 }
+
 module.exports = { listar, nuevoForm, crear, detalle, editarForm, actualizar, finalizar, cancelar };

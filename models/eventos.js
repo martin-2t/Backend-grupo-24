@@ -72,14 +72,16 @@ function finalizarEvento(id) {
 // DELETE lógico | Cancela el evento
 // Entradas que se arrastrarían si se cancelara este evento. La usan tanto el aviso
 // de confirmación como la cancelación misma, para que digan siempre lo mismo.
-function entradasQueSeCancelan(id) {
-  return entradasModel.getEntradasByEvento(id).filter((e) => e.estado !== 'CANCELADA');
+async function entradasQueSeCancelan(id) {
+  const entradas = await entradasModel.getEntradasByEvento(id);
+  return entradas.filter((e) => e.estado !== 'CANCELADA');
 }
 
 // DELETE lógico | Cancela el evento y arrastra sus entradas: no puede quedar una
 // entrada válida de algo que no va a suceder.
-function cancelarEvento(id) {
-  entradasQueSeCancelan(id).forEach((e) => entradasModel.updateEntradaById(e.id, { estado: 'CANCELADA' }));
+async function cancelarEvento(id) {
+  const aCancelar = await entradasQueSeCancelan(id);
+  await Promise.all(aCancelar.map((e) => entradasModel.updateEntradaById(e.id, { estado: 'CANCELADA' })));
   return updateEventoById(id, { estado: 'CANCELADO' });
 }
 
@@ -114,11 +116,11 @@ function programadosEnSala(salaId) {
 }
 
 // Lugares ocupados del evento más lleno de una sala: el piso al que puede bajar su capacidad
-function ocupacionMaximaEnSala(salaId) {
-  return programadosEnSala(salaId).reduce(
-    (max, e) => Math.max(max, entradasModel.lugaresOcupados(e.id)),
-    0
+async function ocupacionMaximaEnSala(salaId) {
+  const ocupados = await Promise.all(
+    programadosEnSala(salaId).map((e) => entradasModel.lugaresOcupados(e.id))
   );
+  return Math.max(0, ...ocupados);
 }
 
 // Un evento programado ocupa su sala: mientras exista, la sala no se puede dar de baja
@@ -131,8 +133,8 @@ function validarBajaDeSala(salaId) {
 }
 
 // Achicar una sala no puede dejar afuera entradas ya vendidas o reservadas
-function validarCapacidadDeSala(salaId, nuevaCapacidad) {
-  const ocupados = ocupacionMaximaEnSala(salaId);
+async function validarCapacidadDeSala(salaId, nuevaCapacidad) {
+  const ocupados = await ocupacionMaximaEnSala(salaId);
   const c = numero(nuevaCapacidad);
   if (isNaN(c) || c >= ocupados) return null;
   return 'No se puede bajar la capacidad a ' + c + ': hay un evento programado con ' +
@@ -168,7 +170,7 @@ async function validar({ nombre, fecha, salaId, precio }, eventoActual) {
 
   // Si mueven el evento a otra sala, tiene que entrar la gente que ya compró
   if (eventoActual) {
-    const ocupados = entradasModel.lugaresOcupados(eventoActual.id);
+   const ocupados = await entradasModel.lugaresOcupados(eventoActual.id);
     if (sala.capacidad < ocupados) {
       return 'La sala "' + sala.nombre + '" tiene capacidad ' + sala.capacidad +
         ' y este evento ya tiene ' + ocupados + ' lugares ocupados.';
@@ -194,7 +196,7 @@ async function validarVenta(eventoId, clienteId) {
     return { error: 'La sala "' + sala.nombre + '" está dada de baja: no se pueden vender entradas.' };
   }
 
-  if (entradasModel.lugaresOcupados(evento.id) >= sala.capacidad) {
+ if ((await entradasModel.lugaresOcupados(evento.id)) >= sala.capacidad) { 
     return { error: 'No quedan lugares disponibles para este evento.' };
   }
 
@@ -220,4 +222,5 @@ module.exports = {
   validarCapacidadDeSala,
   validar,
   validarVenta,
-};
+}
+

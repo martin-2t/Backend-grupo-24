@@ -1,23 +1,34 @@
-// Las reglas de venta y las transiciones de estado viven en los models. Acá solo
-// chequeamos la forma del body JSON y elegimos el código HTTP.
+//Las reglas de venta y las transiciones de estado viven en los models. Acá solo
+//chequeamos la forma del body JSON y elegimos el código HTTP.
+
+//Cada handler es async y envuelve su trabajo en try/catch: Express 4 no atrapa solo
+//los errores de una función async, así que se los pasamos con next(error) al errorHandler.
 const entradasModel = require('../../models/entradas');
 const eventosModel = require('../../models/eventos');
 const clientesModel = require('../../models/clientes');
 
-function getAllEntradas(req, res) {
-  res.status(200).json(entradasModel.getAllEntradas());
-}
-
-function getEntradaById(req, res) {
-  const entrada = entradasModel.getEntradaById(req.params.id);
-  if (!entrada) {
-    return res.status(404).json({ error: 'Entrada no encontrada' });
+async function getAllEntradas(req, res, next) {
+  try {
+    res.status(200).json(await entradasModel.getAllEntradas());
+  } catch (error) {
+    next(error);
   }
-  return res.status(200).json(entrada);
 }
 
-// Chequea la forma del body y que evento y cliente existan. Devuelve { error, status }
-// o null si se puede seguir. Lo que no existe es 404; lo que está mal, 400.
+async function getEntradaById(req, res, next) {
+  try {
+    const entrada = await entradasModel.getEntradaById(req.params.id);
+    if (!entrada) {
+      return res.status(404).json({ error: 'Entrada no encontrada' });
+    }
+    return res.status(200).json(entrada);
+  } catch (error) {
+    next(error);
+  }
+}
+
+//Chequea la forma del body y que evento y cliente existan. Devuelve { error, status }
+//o null si se puede seguir. Lo que no existe es 404; lo que está mal, 400.
 function chequearReferencias(eventoId, clienteId) {
   if (!eventoId || typeof eventoId !== 'number') {
     return { error: 'El campo "eventoId" es obligatorio y debe ser un número', status: 400 };
@@ -34,7 +45,7 @@ function chequearReferencias(eventoId, clienteId) {
   return null;
 }
 
-// Crea una entrada con el estado que corresponda, aplicando las reglas del model
+//Crea una entrada con el estado que corresponda, aplicando las reglas del model
 async function crearEntrada(req, res, next, estado) {
   try {
     const { eventoId, clienteId, precio } = req.body;
@@ -49,82 +60,98 @@ async function crearEntrada(req, res, next, estado) {
       return res.status(400).json({ error: chequeo.error });
     }
 
-    // En la venta directa se puede pisar el precio; la reserva siempre toma el del evento
+    //En la venta directa se puede pisar el precio; la reserva siempre toma el del evento
     const precioFinal =
       estado === 'VALIDA' && typeof precio === 'number' ? precio : chequeo.evento.precio;
 
-    const nueva = entradasModel.createEntrada({ eventoId, clienteId, precio: precioFinal, estado });
+    const nueva = await entradasModel.createEntrada({ eventoId, clienteId, precio: precioFinal, estado });
     return res.status(201).json(nueva);
   } catch (error) {
     next(error);
   }
 }
 
-// Venta directa: crea la entrada ya como VALIDA
+//Venta directa: crea la entrada ya como VALIDA
 function crearVenta(req, res, next) {
   return crearEntrada(req, res, next, 'VALIDA');
 }
 
-// Reserva: crea la entrada como RESERVADA (ocupa el lugar, pero todavía no está vendida)
+//Reserva: crea la entrada como RESERVADA (ocupa el lugar, pero todavía no está vendida)
 function crearReserva(req, res, next) {
   return crearEntrada(req, res, next, 'RESERVADA');
 }
 
-// Confirma una reserva existente, convirtiéndola en venta (RESERVADA -> VALIDA)
-function confirmarReserva(req, res) {
-  const entrada = entradasModel.getEntradaById(req.params.id);
-  if (!entrada) {
-    return res.status(404).json({ error: 'Entrada no encontrada' });
-  }
+//Confirma una reserva existente, convirtiéndola en venta (RESERVADA -> VALIDA)
+async function confirmarReserva(req, res, next) {
+  try {
+    const entrada = await entradasModel.getEntradaById(req.params.id);
+    if (!entrada) {
+      return res.status(404).json({ error: 'Entrada no encontrada' });
+    }
 
-  const error = entradasModel.validarConfirmacion(entrada);
-  if (error) {
-    return res.status(400).json({ error });
-  }
-
-  return res.status(200).json(entradasModel.updateEntradaById(req.params.id, { estado: 'VALIDA' }));
-}
-
-// Cancela una entrada (reservada o vendida) y libera el lugar
-function cancelarEntrada(req, res) {
-  const entrada = entradasModel.getEntradaById(req.params.id);
-  if (!entrada) {
-    return res.status(404).json({ error: 'Entrada no encontrada' });
-  }
-
-  const error = entradasModel.validarCancelacion(entrada);
-  if (error) {
-    return res.status(400).json({ error });
-  }
-
-  return res.status(200).json(entradasModel.updateEntradaById(req.params.id, { estado: 'CANCELADA' }));
-}
-
-// Edición de datos que no afectan el estado (por ejemplo, corregir el precio)
-function updateEntrada(req, res) {
-  const entrada = entradasModel.getEntradaById(req.params.id);
-  if (!entrada) {
-    return res.status(404).json({ error: 'Entrada no encontrada' });
-  }
-
-  const { precio } = req.body;
-  if (precio !== undefined) {
-    const error = entradasModel.validarPrecio(precio);
+    const error = entradasModel.validarConfirmacion(entrada);
     if (error) {
       return res.status(400).json({ error });
     }
-  }
 
-  const actualizada = entradasModel.updateEntradaById(req.params.id, { precio });
-  return res.status(200).json(actualizada);
+    return res.status(200).json(await entradasModel.updateEntradaById(req.params.id, { estado: 'VALIDA' }));
+  } catch (error) {
+    next(error);
+  }
 }
 
-function deleteEntrada(req, res) {
-  const eliminada = entradasModel.removeEntrada(req.params.id);
-  if (!eliminada) {
-    return res.status(404).json({ error: 'Entrada no encontrada' });
+//Cancela una entrada (reservada o vendida) y libera el lugar
+async function cancelarEntrada(req, res, next) {
+  try {
+    const entrada = await entradasModel.getEntradaById(req.params.id);
+    if (!entrada) {
+      return res.status(404).json({ error: 'Entrada no encontrada' });
+    }
+
+    const error = entradasModel.validarCancelacion(entrada);
+    if (error) {
+      return res.status(400).json({ error });
+    }
+
+    return res.status(200).json(await entradasModel.updateEntradaById(req.params.id, { estado: 'CANCELADA' }));
+  } catch (error) {
+    next(error);
   }
-  return res.status(204).send();
+}
+
+//Edición de datos que no afectan el estado (por ejemplo, corregir el precio)
+async function updateEntrada(req, res, next) {
+  try {
+    const entrada = await entradasModel.getEntradaById(req.params.id);
+    if (!entrada) {
+      return res.status(404).json({ error: 'Entrada no encontrada' });
+    }
+
+    const { precio } = req.body;
+    if (precio !== undefined) {
+      const error = entradasModel.validarPrecio(precio);
+      if (error) {
+        return res.status(400).json({ error });
+      }
+    }
+
+    const actualizada = await entradasModel.updateEntradaById(req.params.id, { precio });
+    return res.status(200).json(actualizada);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function deleteEntrada(req, res, next) {
+  try {
+    const eliminada = await entradasModel.removeEntrada(req.params.id);
+    if (!eliminada) {
+      return res.status(404).json({ error: 'Entrada no encontrada' });
+    }
+    return res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
 }
 
 module.exports = {

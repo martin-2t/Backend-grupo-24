@@ -83,18 +83,22 @@ function finalizar(req, res) {
 }
 
 // DELETE lógico | Cancela el evento y arrastra sus entradas (lo hace el model)
-function cancelar(req, res) {
-  const evento = eventosModel.getEventoById(req.params.id);
-  if (!evento) {
-    return res.status(404).json({ error: 'Evento no encontrado' });
-  }
+async function cancelar(req, res, next) {
+  try {
+    const evento = eventosModel.getEventoById(req.params.id);
+    if (!evento) {
+      return res.status(404).json({ error: 'Evento no encontrado' });
+    }
 
-  const error = eventosModel.validarCancelacion(evento);
-  if (error) {
-    return res.status(400).json({ error });
-  }
+    const error = eventosModel.validarCancelacion(evento);
+    if (error) {
+      return res.status(400).json({ error });
+    }
 
-  res.status(200).json(eventosModel.cancelarEvento(req.params.id));
+    res.status(200).json(await eventosModel.cancelarEvento(req.params.id));
+  } catch (error) {
+    next(error);
+  }
 }
 
 module.exports = { listar, obtener, proximos, crear, actualizar, finalizar, cancelar };

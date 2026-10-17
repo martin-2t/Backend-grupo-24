@@ -90,14 +90,14 @@ function validar({ nombre, apellido, email, telefono }) {
 }
 
 // El borrado de cliente es físico: una entrada sin titular quedaría huérfana
-function tieneEntradasVigentes(id) {
-  return entradasModel
-    .getAllEntradas()
-    .some((e) => e.clienteId === Number(id) && e.estado !== 'CANCELADA');
+async function tieneEntradasVigentes(id) {
+  const entradas = await entradasDelCliente(id);
+  return entradas.some((e) => e.estado !== 'CANCELADA');
 }
 
-function entradasDelCliente(id) {
-  return entradasModel.getAllEntradas().filter((e) => e.clienteId === Number(id));
+async function entradasDelCliente(id) {
+  const entradas = await entradasModel.getAllEntradas();
+  return entradas.filter((e) => e.clienteId === Number(id));
 }
 
 module.exports = { TELEFONO_MINIMO, validar, tieneEntradasVigentes, entradasDelCliente, getAll, getById, create, update, remove };

@@ -53,22 +53,26 @@ function actualizar(req, res) {
 }
 
 // elimina un cliente
-function eliminar(req, res) {
-  const cliente = clientesModel.getById(req.params.id);
+async function eliminar(req, res, next) {
+  try {
+    const cliente = clientesModel.getById(req.params.id);
 
-  if (!cliente) {
-    return res.status(404).json({ error: 'Cliente no encontrado' });
+    if (!cliente) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    // El borrado es físico: una entrada sin titular quedaría huérfana
+    if (await clientesModel.tieneEntradasVigentes(cliente.id)) {
+      return res.status(400).json({
+        error: 'El cliente tiene entradas vigentes: cancelalas antes de eliminarlo',
+      });
+    }
+
+    clientesModel.remove(cliente.id);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
   }
-
-  // El borrado es físico: una entrada sin titular quedaría huérfana
-  if (clientesModel.tieneEntradasVigentes(cliente.id)) {
-    return res.status(400).json({
-      error: 'El cliente tiene entradas vigentes: cancelalas antes de eliminarlo',
-    });
-  }
-
-  clientesModel.remove(cliente.id);
-  res.status(204).send();
 }
 
 module.exports = { listar, obtener, crear, actualizar, eliminar };

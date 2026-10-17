@@ -32,18 +32,22 @@ function crear(req, res) {
   volver(res, '/panel/clientes/' + nuevo.id, 'Cliente creado correctamente.');
 }
 
-function detalle(req, res, next) {
-  const cliente = clientesModel.getById(req.params.id);
-  if (!cliente) return next();
+async function detalle(req, res, next) {
+  try {
+    const cliente = clientesModel.getById(req.params.id);
+    if (!cliente) return next();
 
-  const entradas = clientesModel.entradasDelCliente(cliente.id);
+    const entradas = await clientesModel.entradasDelCliente(cliente.id);
 
-  res.render('clientes/detail', {
-    titulo: cliente.nombre + ' ' + cliente.apellido,
-    cliente,
-    entradas: entradas.map(enriquecerEntrada),
-    vigentes: entradasModel.contarPorEstado(entradas).vigentes,
-  });
+    res.render('clientes/detail', {
+      titulo: cliente.nombre + ' ' + cliente.apellido,
+      cliente,
+      entradas: entradas.map(enriquecerEntrada),
+      vigentes: (await entradasModel.contarPorEstado(entradas)).vigentes,
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
 function editarForm(req, res, next) {
@@ -77,19 +81,23 @@ function actualizar(req, res, next) {
   volver(res, '/panel/clientes/' + cliente.id, 'Cliente actualizado.');
 }
 
-function eliminar(req, res, next) {
-  const cliente = clientesModel.getById(req.params.id);
-  if (!cliente) return next();
+async function eliminar(req, res, next) {
+  try {
+    const cliente = clientesModel.getById(req.params.id);
+    if (!cliente) return next();
 
-  if (clientesModel.tieneEntradasVigentes(cliente.id)) {
-    return volverConError(
-      res,
-      '/panel/clientes/' + cliente.id,
-      'No se puede eliminar: el cliente tiene entradas vigentes. Cancelalas primero.'
-    );
+    if (await clientesModel.tieneEntradasVigentes(cliente.id)) {
+      return volverConError(
+        res,
+        '/panel/clientes/' + cliente.id,
+        'No se puede eliminar: el cliente tiene entradas vigentes. Cancelalas primero.'
+      );
+    }
+
+    clientesModel.remove(cliente.id);
+    volver(res, '/panel/clientes', 'Cliente eliminado.');
+  } catch (error) {
+    next(error);
   }
-
-  clientesModel.remove(cliente.id);
-  volver(res, '/panel/clientes', 'Cliente eliminado.');
 }
 module.exports = { listar, nuevoForm, crear, detalle, editarForm, actualizar, eliminar };

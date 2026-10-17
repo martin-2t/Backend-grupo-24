@@ -32,7 +32,7 @@ function localesComunes(req, res, next) {
 // (o Promise.all si la aplica con map sobre una lista)
 async function enriquecerEvento(evento) {
   const sala = await salasModel.getSalaById(evento.salaId);
-  const ocupados = entradasModel.lugaresOcupados(evento.id);
+  const ocupados = await entradasModel.lugaresOcupados(evento.id);
   const capacidad = sala ? sala.capacidad : 0;
   return {
     ...evento,
@@ -48,13 +48,13 @@ function enriquecerEntrada(entrada) {
   const evento = eventosModel.getEventoById(entrada.eventoId);
   const cliente = clientesModel.getById(entrada.clienteId);
   return {
-    ...entrada,
-    evento: evento ? evento.nombre : 'Evento eliminado',
-    cliente: cliente ? cliente.nombre + ' ' + cliente.apellido : 'Cliente eliminado',
+    //La entrada ahora es un documento de mongoose: toObject() lo pasa a un objeto común
+    //( virtuals: true, conserva "id", el _id como texto que se usan en las vistas)
+    ...entrada.toObject({ virtuals: true }),
   };
 }
 
-// Solo las salas activas, pero sin perder la del evento si la dieron de baja
+//Solo las salas activas, pero sin perder la del evento si la dieron de baja
 async function salasElegibles(salaIdActual) {
   const activas = await salasModel.activas();
   if (salaIdActual === undefined || activas.some((s) => s.id === String(salaIdActual))) {

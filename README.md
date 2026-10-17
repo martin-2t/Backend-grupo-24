@@ -4,8 +4,7 @@ API REST para la gestión de eventos culturales y venta de entradas de **Urbana 
 altas, consultas, actualización y baja de clientes, salas y entradas, evitando la
 sobreventa por planillas separadas. Construida con **Node.js + Express**, siguiendo una
 arquitectura en capas (Router → Controller → Model) con persistencia en **MongoDB** mediante
-**Mongoose**. *(Migración en curso: Sala ya usa MongoDB; Cliente, Evento y Entrada todavía
-usan archivos JSON.)*
+**Mongoose** (Migración en curso: Sala y Entrada ya usan MongoDB; Cliente y Evento todavía usan archivos JSON.)
 
 Trabajo práctico grupal — Tecnicatura Superior en Desarrollo de Software (IFTS 29),
 materia **Desarrollo de Sistemas Web (Back End)**, 2° cuatrimestre 2026. Caso de
@@ -64,7 +63,7 @@ Equipo **Commit & Chill**:
 | Lenguaje / Runtime | Node.js |
 | Framework | Express 4 |
 | Vistas | Pug |
-| Persistencia | MongoDB + Mongoose (Sala) · archivos JSON en `/data` (resto, en migración) |
+| Persistencia | MongoDB + Mongoose (Sala y Entrada) · archivos JSON en `/data` (resto, en migración) |
 | Configuración | Variables de entorno con `dotenv` (archivo `.env`) |
 | Pruebas de endpoints | Thunder Client |
 
@@ -157,12 +156,14 @@ MongoDB (Mongoose)
 
 **Entrada**
 
+**Entrada** — colección `entradas` en MongoDB
+
 | Campo | Tipo | Notas |
 |---|---|---|
-| `id` | `number` | autogenerado |
-| `eventoId` | `number` | obligatorio |
-| `clienteId` | `number` | obligatorio |
-| `precio` | `number` | obligatorio |
+| `_id` | `ObjectId` | autogenerado por MongoDB |
+| `eventoId` | `number` | obligatorio (el evento todavía está en JSON) |
+| `clienteId` | `number` | obligatorio (el cliente todavía está en JSON) |
+| `precio` | `number` | obligatorio, mayor o igual a cero |
 | `estado` | `string` | `VALIDA` / `RESERVADA` / `CANCELADA`, default `VALIDA` |
 
 ## Endpoints
@@ -350,4 +351,4 @@ las pruebas con Thunder Client) está en el Google Drive del equipo — ver el d
 - [x] Sala migrada a MongoDB
 - [ ] Cliente migrado a MongoDB
 - [ ] Evento migrado a MongoDB
-- [ ] Entrada migrada a MongoDB
+- [x] Entrada migrada a MongoDB
