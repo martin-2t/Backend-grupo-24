@@ -1,0 +1,29 @@
+extends ../layout
+
+block content
+  .encabezado
+    div
+      h2 Hola, #{usuario.nombre}
+      p.subtitulo
+        span.badge(class=usuario.rol)= usuario.rol
+        if sala
+          span  · Centro: #{sala.nombre}
+
+  .panel-dato
+    h3 Con tu rol podés:
+    ul
+      each permiso in permisos
+        li= permiso
+
+  .panel-dato
+    h3 Cómo operar por la API
+    p
+      | Este login todavía no crea una sesión. Para operar por la API, enviá tu identificador en el header
+      code  x-usuario-id
+      | :
+    p
+      code= usuario.id
+
+  .barra
+    a.btn(href="/panel") Ir al panel
+    a.btn.secundario(href="/panel/login") Volver al login

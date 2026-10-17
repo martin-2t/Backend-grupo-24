@@ -1,0 +1,32 @@
+extends ../layout
+
+//- Registro web de clientes: crea su ficha de cliente y su usuario CLIENTE
+block content
+  - var v = valores || {}
+
+  h2 Crear cuenta de cliente
+
+  if error
+    .error= error
+
+  form.simple(method="POST" action="/panel/registro")
+    label(for="nombre") Nombre
+    input#nombre(type="text" name="nombre" value=v.nombre required pattern=patronLetras title="Solo letras, sin números ni símbolos")
+
+    label(for="apellido") Apellido
+    input#apellido(type="text" name="apellido" value=v.apellido required pattern=patronLetras title="Solo letras, sin números ni símbolos")
+
+    label(for="email") Email
+    input#email(type="email" name="email" value=v.email required placeholder="nombre@correo.com")
+
+    label(for="telefono") Teléfono
+    input#telefono(type="text" name="telefono" value=v.telefono inputmode="numeric" pattern=patronTelefono title='Solo números, al menos ' + telefonoMinimo + ' dígitos' placeholder="1123456789")
+    p.nota Opcional. Si lo cargás, tiene que ser solo números y tener al menos #{telefonoMinimo} dígitos.
+
+    label(for="password") Contraseña
+    input#password(type="password" name="password" required minlength=passwordMinimo)
+    p.nota Mínimo #{passwordMinimo} caracteres.
+
+    .barra
+      button.btn(type="submit") Crear cuenta
+      a.btn.secundario(href="/panel/login") Ya tengo cuenta

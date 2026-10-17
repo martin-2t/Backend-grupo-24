@@ -10,8 +10,14 @@ const salas = require('../controllers/paginas/salas');
 const clientes = require('../controllers/paginas/clientes');
 const entradas = require('../controllers/paginas/entradas');
 const consultas = require('../controllers/paginas/consultas');
+const auth = require('../controllers/paginas/auth');
 
 router.use(comunes.localesComunes);
+
+router.get('/login', auth.loginForm);
+router.post('/login', auth.login);
+router.get('/registro', auth.registroForm);
+router.post('/registro', auth.registro);
 
 router.get('/', inicio.mostrar);
 router.get('/consultas', consultas.mostrar);

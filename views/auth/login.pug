@@ -1,0 +1,20 @@
+extends ../layout
+
+block content
+  h2 Ingresar
+
+  if error
+    .error= error
+
+  form.simple(method="POST" action="/panel/login")
+    label(for="email") Email
+    input#email(type="email" name="email" value=email required placeholder="nombre@correo.com")
+
+    label(for="password") Contraseña
+    input#password(type="password" name="password" required)
+
+    .barra
+      button.btn(type="submit") Ingresar
+      a.btn.secundario(href="/panel/registro") Crear cuenta de cliente
+
+  p.nota Las cuentas de empleados y administradores las da de alta un administrador.
