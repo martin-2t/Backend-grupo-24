@@ -32,8 +32,12 @@ const entradasRoutes = require('./routes/entradas');
 const salasRoutes = require('./routes/salas');
 const eventosRoutes = require('./routes/eventos');
 const consultasRoutes = require('./routes/consultas');
+const authRoutes = require('./routes/auth');
+const usuariosRoutes = require('./routes/usuarios');
 
 app.use('/', inicioRoutes);
+app.use('/auth', authRoutes);
+app.use('/usuarios', usuariosRoutes);
 app.use('/clientes', clientesRoutes);
 app.use('/entradas', entradasRoutes);
 app.use('/salas', salasRoutes);
