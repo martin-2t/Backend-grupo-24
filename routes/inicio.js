@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import * as inicioController from '../controllers/api/inicio.js';
+
 const router = express.Router();
-const inicioController = require('../controllers/api/inicio');
 
 router.get('/', inicioController.mostrar);
 
-module.exports = router;
+export default router;

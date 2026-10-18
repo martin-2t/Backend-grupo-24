@@ -1,7 +1,7 @@
 // Páginas de salas. Renderiza vistas; las reglas viven en los models.
-const salasModel = require('../../models/salas');
-const eventosModel = require('../../models/eventos');
-const { volver, volverConError, enriquecerEvento } = require('./comunes');
+import * as salasModel from '../../models/salas.js';
+import * as eventosModel from '../../models/eventos.js';
+import { volver, volverConError, enriquecerEvento } from './comunes.js';
 
 async function listar(req, res, next) {
   try {
@@ -127,4 +127,4 @@ async function cambiarEstado(req, res, next) {
   }
 }
 
-module.exports = { listar, nuevoForm, crear, detalle, editarForm, actualizar, cambiarEstado };
+export { listar, nuevoForm, crear, detalle, editarForm, actualizar, cambiarEstado };

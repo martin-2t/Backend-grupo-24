@@ -3,8 +3,8 @@
 //
 // Cada handler es async y envuelve su trabajo en try/catch: Express 4 no atrapa solo
 // los errores de una función async, así que se los pasamos con next(error) al errorHandler.
-const eventosModel = require('../../models/eventos');
-const salasModel = require('../../models/salas');
+import * as eventosModel from '../../models/eventos.js';
+import * as salasModel from '../../models/salas.js';
 
 // READ | Todos los eventos
 async function listar(req, res, next) {
@@ -122,4 +122,4 @@ async function cancelar(req, res, next) {
   }
 }
 
-module.exports = { listar, obtener, proximos, crear, actualizar, finalizar, cancelar };
+export { listar, obtener, proximos, crear, actualizar, finalizar, cancelar };

@@ -3,9 +3,9 @@
 //
 // Los "obtenedores" de abajo devuelven las salas que involucra cada petición. Usan await
 // aunque algún model todavía sea sincrónico: así siguen funcionando cuando migren a Mongo.
-const salasModel = require('../models/salas');
-const eventosModel = require('../models/eventos');
-const entradasModel = require('../models/entradas');
+import * as salasModel from '../models/salas.js';
+import * as eventosModel from '../models/eventos.js';
+import * as entradasModel from '../models/entradas.js';
 
 // Recibe una función que, dada la petición, devuelve las salas involucradas.
 // Si devuelve null, el recurso no existe: dejamos pasar y el controller responde 404.
@@ -59,7 +59,7 @@ async function salaDeLaEntrada(req) {
   return evento ? [evento.salaId] : null;
 }
 
-module.exports = {
+export {
   soloSuCentro,
   salaDelParametro,
   salaDelBody,

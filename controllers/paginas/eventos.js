@@ -1,7 +1,7 @@
 // Páginas de eventos. Renderiza vistas; las reglas viven en los models.
-const eventosModel = require('../../models/eventos');
-const entradasModel = require('../../models/entradas');
-const { volver, volverConError, enriquecerEvento, enriquecerEntrada, salasElegibles } = require('./comunes');
+import * as eventosModel from '../../models/eventos.js';
+import * as entradasModel from '../../models/entradas.js';
+import { volver, volverConError, enriquecerEvento, enriquecerEntrada, salasElegibles } from './comunes.js';
 
 async function listar(req, res, next) {
   try {
@@ -165,4 +165,4 @@ async function cancelar(req, res, next) {
   }
 }
 
-module.exports = { listar, nuevoForm, crear, detalle, editarForm, actualizar, finalizar, cancelar };
+export { listar, nuevoForm, crear, detalle, editarForm, actualizar, finalizar, cancelar };

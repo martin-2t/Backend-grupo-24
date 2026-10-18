@@ -1,8 +1,8 @@
 // Login y registro del panel, como en la Clase 10: el login valida email y contraseña
 // contra MongoDB y muestra el resultado. Sin sesiones, la página no "recuerda" al usuario.
-const usuariosModel = require('../../models/usuarios');
-const salasModel = require('../../models/salas');
-const { volver } = require('./comunes');
+import * as usuariosModel from '../../models/usuarios.js';
+import * as salasModel from '../../models/salas.js';
+import { volver } from './comunes.js';
 
 // Resumen de la matriz de permisos que aplica la API, para mostrar al ingresar
 const PERMISOS = {
@@ -76,4 +76,4 @@ async function registro(req, res, next) {
   }
 }
 
-module.exports = { loginForm, login, registroForm, registro };
+export { loginForm, login, registroForm, registro };

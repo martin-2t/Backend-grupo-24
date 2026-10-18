@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
-const { SOLO_LETRAS, SOLO_DIGITOS, EMAIL } = require('./formatos');
-const entradasModel = require('./entradas');
+import mongoose from 'mongoose';
+import { SOLO_LETRAS, SOLO_DIGITOS, EMAIL } from './formatos.js';
+import * as entradasModel from './entradas.js';
 
 const TELEFONO_MINIMO = 10;
 
@@ -112,7 +112,7 @@ async function tieneEntradasVigentes(id) {
   return entradas.some((e) => e.estado !== 'CANCELADA');
 }
 
-module.exports = {
+export {
   Cliente,
   TELEFONO_MINIMO,
   validar,

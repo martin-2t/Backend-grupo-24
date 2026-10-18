@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const { SOLO_LETRAS, LARGO_MINIMO } = require('./formatos');
+import mongoose from 'mongoose';
+import { SOLO_LETRAS, LARGO_MINIMO } from './formatos.js';
 
 // Una sala chica no tiene sentido para el negocio: el mínimo es una regla del dominio
 const CAPACIDAD_MINIMA = 10;
@@ -105,7 +105,7 @@ async function validar({ nombre, capacidad, direccion }) {
   }
 }
 
-module.exports = {
+export {
   Sala,
   CAPACIDAD_MINIMA,
   validar,

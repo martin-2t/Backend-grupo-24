@@ -1,9 +1,9 @@
 // Páginas de entradas. Renderiza vistas; las reglas viven en los models.
-const entradasModel = require('../../models/entradas');
-const eventosModel = require('../../models/eventos');
-const clientesModel = require('../../models/clientes');
-const { numero } = require('../../models/formatos');
-const { volver, volverConError, enriquecerEvento, enriquecerEntrada } = require('./comunes');
+import * as entradasModel from '../../models/entradas.js';
+import * as eventosModel from '../../models/eventos.js';
+import * as clientesModel from '../../models/clientes.js';
+import { numero } from '../../models/formatos.js';
+import { volver, volverConError, enriquecerEvento, enriquecerEntrada } from './comunes.js';
 
 async function listar(req, res, next) {
   try {
@@ -165,4 +165,4 @@ async function eliminar(req, res, next) {
   }
 }
 
-module.exports = { listar, nuevoForm, crear, detalle, confirmar, cancelar, actualizarPrecio, eliminar };
+export { listar, nuevoForm, crear, detalle, confirmar, cancelar, actualizarPrecio, eliminar };

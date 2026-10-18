@@ -1,21 +1,23 @@
-// Carga los datos iniciales de /data en MongoDB. Se ejecuta con: npm run seed
+// Carga los datos iniciales de scripts/semillas en MongoDB. Se ejecuta con: npm run seed
 // ATENCIÓN: vacía cada colección antes de cargarla.
 //
-// Los documentos de /data traen un _id fijo (por ejemplo, la sala 1 es
+// Las semillas son solo datos de arranque: la aplicación persiste todo en MongoDB.
+// Sus documentos traen un _id fijo (por ejemplo, la sala 1 es
 // "5a1a00000000000000000001" y el evento 1 es "5a1e00000000000000000001"), así las
 // referencias entre colecciones son las mismas
 // en la base de cada integrante y en Atlas.
-require('dotenv').config({ quiet: true });
+import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+import mongoose from 'mongoose';
+import conectarDB from '../config/db.js';
+import { Sala } from '../models/salas.js';
+import { Entrada } from '../models/entradas.js';
+import { Cliente } from '../models/clientes.js';
+import { Usuario } from '../models/usuarios.js';
+import { Evento } from '../models/eventos.js';
 
-const path = require('path');
-const fs = require('fs');
-const mongoose = require('mongoose');
-const conectarDB = require('../config/db');
-const { Sala } = require('../models/salas');
-const { Entrada } = require('../models/entradas');
-const { Cliente } = require('../models/clientes');
-const { Usuario } = require('../models/usuarios');
-const { Evento } = require('../models/eventos');
+dotenv.config({ quiet: true });
 
 // Los usuarios de prueba traen la contraseña en texto: se reemplaza por salt + hash
 // antes de guardar, así en la base nunca queda una contraseña real
@@ -24,7 +26,7 @@ function prepararUsuario({ password, ...usuario }) {
 }
 
 // Cada entidad que está en Mongo tiene aquí su model y su archivo de datos.
-// El orden acompaña las referencias: el evento apunta a una sala, y la entrada a un evento y un cliente
+// El orden acompaña las referencias: el evento apunta a una sala, y la entrada a un evento y un cliente.
 // "preparar" es opcional: transforma cada documento antes de insertarlo.
 const colecciones = [
   { model: Sala, archivo: 'salas.json' },
@@ -35,7 +37,7 @@ const colecciones = [
 ];
 
 function leerDatos(archivo) {
-  const ruta = path.join(__dirname, '..', 'data', archivo);
+  const ruta = path.join(import.meta.dirname, 'semillas', archivo);
   return JSON.parse(fs.readFileSync(ruta, 'utf-8'));
 }
 

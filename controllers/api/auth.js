@@ -1,7 +1,7 @@
 // Login y registro por API (JSON). Mismo criterio que el login de la Clase 10: se busca el
 // usuario por email y se compara el hash de la contraseña. No se crean sesiones ni tokens.
-const usuariosModel = require('../../models/usuarios');
-const clientesModel = require('../../models/clientes');
+import * as usuariosModel from '../../models/usuarios.js';
+import * as clientesModel from '../../models/clientes.js';
 
 // POST /auth/login  { email, password }
 async function login(req, res, next) {
@@ -48,4 +48,4 @@ async function misEntradas(req, res, next) {
   }
 }
 
-module.exports = { login, registro, yo, misEntradas };
+export { login, registro, yo, misEntradas };

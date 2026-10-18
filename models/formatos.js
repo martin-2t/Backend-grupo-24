@@ -17,4 +17,4 @@ function numero(valor) {
   return Number(valor);
 }
 
-module.exports = { SOLO_LETRAS, SOLO_DIGITOS, EMAIL, LARGO_MINIMO, texto, numero };
+export { SOLO_LETRAS, SOLO_DIGITOS, EMAIL, LARGO_MINIMO, texto, numero };

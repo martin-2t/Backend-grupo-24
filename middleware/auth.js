@@ -2,7 +2,7 @@
 // etapa): después del login, el cliente envía el _id del usuario en el header x-usuario-id
 // y el servidor lo busca en MongoDB en cada petición. Cualquiera que conozca un _id podría
 // usarlo: esa limitación se resuelve más adelante con sesiones o JWT.
-const usuariosModel = require('../models/usuarios');
+import * as usuariosModel from '../models/usuarios.js';
 
 // Autenticación: ¿quién es? Deja el usuario en req.usuario para los middlewares siguientes
 async function autenticar(req, res, next) {
@@ -41,4 +41,4 @@ function permitir(...roles) {
   };
 }
 
-module.exports = { autenticar, permitir };
+export { autenticar, permitir };

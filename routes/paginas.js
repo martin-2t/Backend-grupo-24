@@ -1,16 +1,17 @@
 // Rutas del panel, montadas bajo /panel. Los formularios HTML solo mandan GET y POST,
 // así que lo que en la API es PUT (finalizar, cancelar, confirmar, baja) acá va por POST.
-const express = require('express');
-const router = express.Router();
+import express from 'express';
 
-const comunes = require('../controllers/paginas/comunes');
-const inicio = require('../controllers/paginas/inicio');
-const eventos = require('../controllers/paginas/eventos');
-const salas = require('../controllers/paginas/salas');
-const clientes = require('../controllers/paginas/clientes');
-const entradas = require('../controllers/paginas/entradas');
-const consultas = require('../controllers/paginas/consultas');
-const auth = require('../controllers/paginas/auth');
+import * as comunes from '../controllers/paginas/comunes.js';
+import * as inicio from '../controllers/paginas/inicio.js';
+import * as eventos from '../controllers/paginas/eventos.js';
+import * as salas from '../controllers/paginas/salas.js';
+import * as clientes from '../controllers/paginas/clientes.js';
+import * as entradas from '../controllers/paginas/entradas.js';
+import * as consultas from '../controllers/paginas/consultas.js';
+import * as auth from '../controllers/paginas/auth.js';
+
+const router = express.Router();
 
 router.use(comunes.localesComunes);
 
@@ -57,4 +58,4 @@ router.post('/entradas/:id/cancelar', entradas.cancelar);
 router.post('/entradas/:id/precio', entradas.actualizarPrecio);
 router.post('/entradas/:id/eliminar', entradas.eliminar);
 
-module.exports = router;
+export default router;

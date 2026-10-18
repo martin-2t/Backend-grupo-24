@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import * as clientesController from '../controllers/api/clientes.js';
+import { autenticar, permitir } from '../middleware/auth.js';
+
 const router = express.Router();
-const clientesController = require('../controllers/api/clientes');
-const { autenticar, permitir } = require('../middleware/auth');
 
 // Los clientes son datos personales: solo el personal (ADMIN y EMPLEADO) los gestiona
 const personal = [autenticar, permitir('ADMIN', 'EMPLEADO')];
@@ -12,4 +13,4 @@ router.post('/', ...personal, clientesController.crear);
 router.put('/:id', ...personal, clientesController.actualizar);
 router.delete('/:id', autenticar, permitir('ADMIN'), clientesController.eliminar);
 
-module.exports = router;
+export default router;

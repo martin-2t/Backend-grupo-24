@@ -1,9 +1,9 @@
 // Helpers que comparten todas las páginas del panel.
-const eventosModel = require('../../models/eventos');
-const salasModel = require('../../models/salas');
-const clientesModel = require('../../models/clientes');
-const entradasModel = require('../../models/entradas');
-const { SOLO_LETRAS, LARGO_MINIMO } = require('../../models/formatos');
+import * as eventosModel from '../../models/eventos.js';
+import * as salasModel from '../../models/salas.js';
+import * as clientesModel from '../../models/clientes.js';
+import * as entradasModel from '../../models/entradas.js';
+import { SOLO_LETRAS, LARGO_MINIMO } from '../../models/formatos.js';
 
 // Sin sesiones no hay flash messages, así que los avisos viajan por querystring
 function volver(res, ruta, mensaje) {
@@ -70,4 +70,4 @@ async function salasElegibles(salaIdActual) {
   return actual ? [...activas, actual] : activas;
 }
 
-module.exports = { volver, volverConError, localesComunes, enriquecerEvento, enriquecerEntrada, salasElegibles };
+export { volver, volverConError, localesComunes, enriquecerEvento, enriquecerEntrada, salasElegibles };

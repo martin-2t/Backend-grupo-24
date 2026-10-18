@@ -1,8 +1,8 @@
 // Páginas de inicio del panel. Renderiza vistas; las reglas viven en los models.
-const eventosModel = require('../../models/eventos');
-const salasModel = require('../../models/salas');
-const clientesModel = require('../../models/clientes');
-const entradasModel = require('../../models/entradas');
+import * as eventosModel from '../../models/eventos.js';
+import * as salasModel from '../../models/salas.js';
+import * as clientesModel from '../../models/clientes.js';
+import * as entradasModel from '../../models/entradas.js';
 
 async function mostrar(req, res, next) {
   try {
@@ -20,4 +20,4 @@ async function mostrar(req, res, next) {
     next(error);
   }
 }
-module.exports = { mostrar };
+export { mostrar };

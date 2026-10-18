@@ -1,8 +1,9 @@
-const express = require('express');
+import express from 'express';
+import * as eventosController from '../controllers/api/eventos.js';
+import { autenticar, permitir } from '../middleware/auth.js';
+import { soloSuCentro, salaDelBody, salasDelEvento } from '../middleware/centro.js';
+
 const router = express.Router();
-const eventosController = require('../controllers/api/eventos');
-const { autenticar, permitir } = require('../middleware/auth');
-const { soloSuCentro, salaDelBody, salasDelEvento } = require('../middleware/centro');
 
 // Lectura pública (cartelera)
 router.get('/proximos', eventosController.proximos);
@@ -16,4 +17,4 @@ router.put('/:id', ...gestion, soloSuCentro(salasDelEvento), eventosController.a
 router.put('/:id/finalizar', ...gestion, soloSuCentro(salasDelEvento), eventosController.finalizar);
 router.put('/:id/cancelar', ...gestion, soloSuCentro(salasDelEvento), eventosController.cancelar);
 
-module.exports = router;
+export default router;

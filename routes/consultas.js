@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import * as consultasController from '../controllers/api/consultas.js';
+import { autenticar, permitir } from '../middleware/auth.js';
+
 const router = express.Router();
-const consultasController = require('../controllers/api/consultas');
-const { autenticar, permitir } = require('../middleware/auth');
 
 // Ventas: información interna del negocio, solo para el personal
 const personal = [autenticar, permitir('ADMIN', 'EMPLEADO')];
@@ -12,4 +13,4 @@ router.get('/entradas-vendidas', ...personal, consultasController.entradasVendid
 router.get('/entradas-disponibles/:eventoId', consultasController.entradasDisponibles);
 router.get('/eventos-proximos', consultasController.eventosProximos);
 
-module.exports = router;
+export default router;
