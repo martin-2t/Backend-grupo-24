@@ -1,7 +1,7 @@
 // Páginas de consultas. Renderiza vistas; las reglas viven en los models.
-const eventosModel = require('../../models/eventos');
-const entradasModel = require('../../models/entradas');
-const { enriquecerEvento } = require('./comunes');
+import * as eventosModel from '../../models/eventos.js';
+import * as entradasModel from '../../models/entradas.js';
+import { enriquecerEvento } from './comunes.js';
 
 async function mostrar(req, res, next) {
   try {
@@ -27,4 +27,4 @@ async function mostrar(req, res, next) {
     next(error);
   }
 }
-module.exports = { mostrar };
+export { mostrar };

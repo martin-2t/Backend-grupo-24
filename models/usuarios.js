@@ -1,8 +1,8 @@
-const crypto = require('crypto');
-const mongoose = require('mongoose');
-const { EMAIL } = require('./formatos');
-const salasModel = require('./salas');
-const clientesModel = require('./clientes');
+import crypto from 'crypto';
+import mongoose from 'mongoose';
+import { EMAIL } from './formatos.js';
+import * as salasModel from './salas.js';
+import * as clientesModel from './clientes.js';
 
 const ROLES = ['ADMIN', 'EMPLEADO', 'CLIENTE'];
 const PASSWORD_MINIMO = 8;
@@ -264,7 +264,7 @@ async function registrarCliente({ nombre, apellido, email, telefono, password })
   }
 }
 
-module.exports = {
+export {
   Usuario,
   ROLES,
   PASSWORD_MINIMO,

@@ -13,4 +13,4 @@ function notFound(req, res) {
   res.status(404).json({ error: 'Recurso no encontrado' });
 }
 
-module.exports = notFound;
+export default notFound;

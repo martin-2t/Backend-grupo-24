@@ -1,5 +1,5 @@
 // Model: la clase con la que se consulta y se guarda en la colección "entradas"
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 
 
@@ -125,7 +125,7 @@ function validarPrecio(valor) {
   return null;
 }
 
-module.exports = {
+export {
   Entrada,
   validarPrecio,
   validarConfirmacion,

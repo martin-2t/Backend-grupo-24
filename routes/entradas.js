@@ -1,9 +1,10 @@
-const express = require('express');
+import express from 'express';
+import * as entradasController from '../controllers/api/entradas.js';
+import { autenticar, permitir } from '../middleware/auth.js';
+import { soloSuCentro, salaDelEventoDelBody, salaDeLaEntrada } from '../middleware/centro.js';
+import { compraComoCliente, clienteDeBoleteria, entradaPropia } from '../middleware/compras.js';
+
 const router = express.Router();
-const entradasController = require('../controllers/api/entradas');
-const { autenticar, permitir } = require('../middleware/auth');
-const { soloSuCentro, salaDelEventoDelBody, salaDeLaEntrada } = require('../middleware/centro');
-const { compraComoCliente, clienteDeBoleteria, entradaPropia } = require('../middleware/compras');
 
 const personal = [autenticar, permitir('ADMIN', 'EMPLEADO')];
 
@@ -26,4 +27,4 @@ router.put('/:id/cancelar', ...personal, soloSuCentro(salaDeLaEntrada), entradas
 router.put('/:id', ...personal, soloSuCentro(salaDeLaEntrada), entradasController.updateEntrada);
 router.delete('/:id', autenticar, permitir('ADMIN'), entradasController.deleteEntrada);
 
-module.exports = router;
+export default router;

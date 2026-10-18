@@ -1,7 +1,7 @@
 // Páginas de clientes. Renderiza vistas; las reglas viven en los models.
-const clientesModel = require('../../models/clientes');
-const entradasModel = require('../../models/entradas');
-const { volver, volverConError, enriquecerEntrada } = require('./comunes');
+import * as clientesModel from '../../models/clientes.js';
+import * as entradasModel from '../../models/entradas.js';
+import { volver, volverConError, enriquecerEntrada } from './comunes.js';
 
 async function listar(req, res, next) {
   try {
@@ -121,4 +121,4 @@ async function eliminar(req, res, next) {
   }
 }
 
-module.exports = { listar, nuevoForm, crear, detalle, editarForm, actualizar, eliminar };
+export { listar, nuevoForm, crear, detalle, editarForm, actualizar, eliminar };

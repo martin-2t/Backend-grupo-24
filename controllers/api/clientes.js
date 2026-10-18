@@ -1,7 +1,7 @@
 // Las reglas de qué es un cliente válido viven en el model (Schema), así la API y el panel
 // aplican exactamente las mismas. Acá solo traducimos a códigos HTTP.
 // Los errores de Mongoose (ValidationError, CastError) los traduce errorHandler a 400.
-const clientesModel = require('../../models/clientes');
+import * as clientesModel from '../../models/clientes.js';
 
 // devuelve todos los clientes
 async function listar(req, res, next) {
@@ -78,4 +78,4 @@ async function eliminar(req, res, next) {
   }
 }
 
-module.exports = { listar, obtener, crear, actualizar, eliminar };
+export { listar, obtener, crear, actualizar, eliminar };

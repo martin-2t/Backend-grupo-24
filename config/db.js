@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 // La cadena de conexión no va en el código: cada uno la define en su .env (ver .env.example)
 async function conectarDB() {
@@ -16,4 +16,4 @@ async function conectarDB() {
   }
 }
 
-module.exports = conectarDB;
+export default conectarDB;

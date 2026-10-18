@@ -22,4 +22,4 @@ function mostrar(req, res) {
   });
 }
 
-module.exports = { mostrar };
+export { mostrar };

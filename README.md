@@ -63,6 +63,7 @@ Equipo **Commit & Chill**:
 | Categoría | Tecnología |
 |---|---|
 | Lenguaje / Runtime | Node.js |
+| Módulos | ES Modules (`import` / `export`, `"type": "module"`) |
 | Framework | Express 4 |
 | Vistas | Pug |
 | Persistencia | MongoDB + Mongoose (local o MongoDB Atlas) |
@@ -491,5 +492,5 @@ las pruebas con Thunder Client) está en el Google Drive del equipo - ver el doc
 - [x] Evento migrado a MongoDB
 - [x] Entrada migrada a MongoDB
 - [x] Usuarios con roles (ADMIN, EMPLEADO, CLIENTE), login básico y control de acceso (RBAC + centro propio)
-- [ ] Proyecto migrado de CommonJS a ES Modules (ECMAScript)
+- [x] Proyecto migrado de CommonJS a ES Modules (ECMAScript)
 - [ ] Sesiones o JWT (próxima etapa)

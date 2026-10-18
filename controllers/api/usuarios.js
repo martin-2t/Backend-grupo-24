@@ -1,6 +1,6 @@
 // Gestión de usuarios (solo ADMIN, lo controla la ruta). Las reglas viven en el model;
 // acá se elige el código HTTP. Solo se toman del body los campos permitidos.
-const usuariosModel = require('../../models/usuarios');
+import * as usuariosModel from '../../models/usuarios.js';
 
 async function listar(req, res, next) {
   try {
@@ -111,4 +111,4 @@ async function eliminar(req, res, next) {
   }
 }
 
-module.exports = { listar, obtener, crear, actualizar, desbloquear, eliminar };
+export { listar, obtener, crear, actualizar, desbloquear, eliminar };

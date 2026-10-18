@@ -1,8 +1,8 @@
-const mongoose = require('mongoose');
-const salasModel = require('./salas');
-const entradasModel = require('./entradas');
-const clientesModel = require('./clientes');
-const { LARGO_MINIMO, texto, numero } = require('./formatos');
+import mongoose from 'mongoose';
+import * as salasModel from './salas.js';
+import * as entradasModel from './entradas.js';
+import * as clientesModel from './clientes.js';
+import { LARGO_MINIMO, texto, numero } from './formatos.js';
 
 // Schema: la forma y las reglas de validación de cada documento de la colección "eventos".
 // Cada evento pertenece a una Sala (salaId)
@@ -230,7 +230,7 @@ async function validarVenta(eventoId, clienteId) {
   return { evento, sala };
 }
 
-module.exports = {
+export {
   Evento,
   getAllEventos,
   contarEventos,

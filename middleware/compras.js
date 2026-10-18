@@ -1,7 +1,7 @@
 // Reglas de compra según quién vende. Se ubican antes del controller de entradas, que
 // sigue recibiendo siempre un eventoId y un clienteId.
-const clientesModel = require('../models/clientes');
-const entradasModel = require('../models/entradas');
+import * as clientesModel from '../models/clientes.js';
+import * as entradasModel from '../models/entradas.js';
 
 // Compra web: un CLIENTE solo compra para sí mismo y paga el precio del evento.
 // Pisamos el clienteId con el suyo y descartamos cualquier precio que haya enviado.
@@ -54,4 +54,4 @@ async function entradaPropia(req, res, next) {
   }
 }
 
-module.exports = { compraComoCliente, clienteDeBoleteria, entradaPropia };
+export { compraComoCliente, clienteDeBoleteria, entradaPropia };

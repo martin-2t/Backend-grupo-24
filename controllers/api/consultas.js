@@ -1,6 +1,6 @@
-const entradasModel = require('../../models/entradas');
-const eventosModel = require('../../models/eventos');
-const salasModel = require('../../models/salas');
+import * as entradasModel from '../../models/entradas.js';
+import * as eventosModel from '../../models/eventos.js';
+import * as salasModel from '../../models/salas.js';
 
 //GET /consultas/entradas-vendidas            -> vendidas por cada evento
 //GET /consultas/entradas-vendidas/:eventoId  -> vendidas de un evento puntual
@@ -69,4 +69,4 @@ async function eventosProximos(req, res, next) {
   }
 }
 
-module.exports = { entradasVendidas, entradasDisponibles, eventosProximos };
+export { entradasVendidas, entradasDisponibles, eventosProximos };
