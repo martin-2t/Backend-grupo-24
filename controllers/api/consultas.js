@@ -9,18 +9,19 @@ async function entradasVendidas(req, res, next) {
     const { eventoId } = req.params;
 
     if (eventoId) {
-      const evento = eventosModel.getEventoById(eventoId);
+      const evento = await eventosModel.getEventoById(eventoId);
       if (!evento) {
         return res.status(404).json({ error: 'Evento no encontrado' });
       }
       const entradas = await entradasModel.getEntradasByEvento(eventoId);
       const vendidas = entradas.filter((e) => e.estado === 'VALIDA').length;
-      return res.status(200).json({ eventoId: Number(eventoId), evento: evento.nombre, vendidas });
+      return res.status(200).json({ eventoId: evento.id, evento: evento.nombre, vendidas });
     }
 
     //Promise.all espera a que terminen todas las consultas, una por evento
+    const eventos = await eventosModel.getAllEventos();
     const resumen = await Promise.all(
-      eventosModel.getAllEventos().map(async (evento) => {
+      eventos.map(async (evento) => {
         const entradas = await entradasModel.getEntradasByEvento(evento.id);
         return {
           eventoId: evento.id,
@@ -38,7 +39,7 @@ async function entradasVendidas(req, res, next) {
 async function entradasDisponibles(req, res, next) {
   try {
     const { eventoId } = req.params;
-    const evento = eventosModel.getEventoById(eventoId);
+    const evento = await eventosModel.getEventoById(eventoId);
     if (!evento) {
       return res.status(404).json({ error: 'Evento no encontrado' });
     }
@@ -48,7 +49,7 @@ async function entradasDisponibles(req, res, next) {
     const disponibles = Math.max(sala.capacidad - ocupados, 0);
 
     return res.status(200).json({
-      eventoId: Number(eventoId),
+      eventoId: evento.id,
       evento: evento.nombre,
       capacidadSala: sala.capacidad,
       ocupados,
@@ -60,8 +61,12 @@ async function entradasDisponibles(req, res, next) {
 }
 
 // GET /consultas/eventos-proximos
-function eventosProximos(req, res) {
-  return res.status(200).json(eventosModel.getEventosProximos());
+async function eventosProximos(req, res, next) {
+  try {
+    return res.status(200).json(await eventosModel.getEventosProximos());
+  } catch (error) {
+    next(error);
+  }
 }
 
 module.exports = { entradasVendidas, entradasDisponibles, eventosProximos };

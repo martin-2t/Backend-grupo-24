@@ -1,10 +1,10 @@
 # 🎟️ Urbana Cult API
 
 API REST para la gestión de eventos culturales y venta de entradas de **Urbana Cult** —
-altas, consultas, actualización y baja de clientes, salas y entradas, evitando la
+altas, consultas, actualización y baja de clientes, salas, eventos y entradas, evitando la
 sobreventa por planillas separadas. Construida con **Node.js + Express**, siguiendo una
 arquitectura en capas (Router → Controller → Model) con persistencia en **MongoDB** mediante
-**Mongoose** (Migración en curso: Sala y Entrada ya usan MongoDB; Cliente y Evento todavía usan archivos JSON.)
+**Mongoose**: las cuatro entidades (Sala, Cliente, Evento y Entrada) viven en MongoDB.
 
 Trabajo práctico grupal — Tecnicatura Superior en Desarrollo de Software (IFTS 29),
 materia **Desarrollo de Sistemas Web (Back End)**, 2° cuatrimestre 2026. Caso de
@@ -63,15 +63,17 @@ Equipo **Commit & Chill**:
 | Lenguaje / Runtime | Node.js |
 | Framework | Express 4 |
 | Vistas | Pug |
-| Persistencia | MongoDB + Mongoose (Sala y Entrada) · archivos JSON en `/data` (resto, en migración) |
+| Persistencia | MongoDB + Mongoose (local o MongoDB Atlas) |
+| Datos iniciales | Archivos JSON en `/data`, que carga `npm run seed` |
 | Configuración | Variables de entorno con `dotenv` (archivo `.env`) |
 | Pruebas de endpoints | Thunder Client |
 
 ## Arquitectura
 
 Arquitectura en capas clásica de Express: cada entidad separa Router, Controller y
-Model. El Model define el Schema de Mongoose y accede a su colección de MongoDB (o, mientras
-dura la migración, a su archivo JSON). Todo el acceso a datos es asincrónico (`async`/`await`).
+Model. El Model define el Schema de Mongoose y accede a su colección de MongoDB. Todo el
+acceso a datos es asincrónico (`async`/`await`): cada handler del Controller espera la
+respuesta de la base y, si algo falla, pasa el error con `next(error)` al `errorHandler`.
 
 ```
 Cliente (JSON)
@@ -99,7 +101,7 @@ MongoDB (Mongoose)
 ├── views              # plantillas Pug del panel
 ├── middleware         # logger, notFound, errorHandler
 ├── public/css         # estilos del panel
-├── data               # datos iniciales que carga el seed (y los .json aún no migrados)
+├── data               # datos iniciales que carga el seed (con _id fijos)
 ├── scripts            # seed.js: carga /data en MongoDB
 └── index.js           # conecta a MongoDB y levanta el servidor
 ```
@@ -122,11 +124,14 @@ MongoDB (Mongoose)
 
 ## Modelo de datos
 
-**Cliente**
+Todas las colecciones usan el `_id` (ObjectId) que genera MongoDB. Las relaciones entre
+entidades se guardan como ObjectId con `ref` al model correspondiente.
+
+**Cliente** — colección `clientes` en MongoDB
 
 | Campo | Tipo | Notas |
 |---|---|---|
-| `id` | `number` | autogenerado |
+| `_id` | `ObjectId` | autogenerado por MongoDB |
 | `nombre` | `string` | obligatorio, solo letras |
 | `apellido` | `string` | obligatorio, solo letras |
 | `email` | `string` | obligatorio, formato válido |
@@ -142,28 +147,26 @@ MongoDB (Mongoose)
 | `direccion` | `string` | obligatorio, mínimo 4 caracteres |
 | `estado` | `string` | `ACTIVA` / `INACTIVA` (borrado lógico) |
 
-**Evento**
+**Evento** — colección `eventos` en MongoDB
 
 | Campo | Tipo | Notas |
 |---|---|---|
-| `id` | `number` | autogenerado |
+| `_id` | `ObjectId` | autogenerado por MongoDB |
 | `nombre` | `string` | obligatorio, mínimo 4 caracteres |
 | `descripcion` | `string` | opcional |
-| `fecha` | `string` | obligatorio; al crear debe ser futura |
-| `salaId` | `string` | obligatorio: el `_id` (ObjectId) de una sala existente y `ACTIVA` |
+| `fecha` | `Date` | obligatorio; al crear debe ser futura |
+| `salaId` | `ObjectId` (ref `Sala`) | obligatorio: una sala existente y `ACTIVA` |
 | `precio` | `number` | obligatorio, mayor o igual a cero |
-| `estado` | `string` | `PROGRAMADO` / `FINALIZADO` / `CANCELADO` |
-
-**Entrada**
+| `estado` | `string` | `PROGRAMADO` / `FINALIZADO` / `CANCELADO`, default `PROGRAMADO` |
 
 **Entrada** — colección `entradas` en MongoDB
 
 | Campo | Tipo | Notas |
 |---|---|---|
 | `_id` | `ObjectId` | autogenerado por MongoDB |
-| `eventoId` | `number` | obligatorio (el evento todavía está en JSON) |
-| `clienteId` | `number` | obligatorio (el cliente todavía está en JSON) |
-| `precio` | `number` | obligatorio, mayor o igual a cero |
+| `eventoId` | `ObjectId` (ref `Evento`) | obligatorio: un evento existente y `PROGRAMADO` |
+| `clienteId` | `ObjectId` (ref `Cliente`) | obligatorio: un cliente existente |
+| `precio` | `number` | mayor o igual a cero; si no se envía, toma el precio del evento (la reserva siempre lo toma) |
 | `estado` | `string` | `VALIDA` / `RESERVADA` / `CANCELADA`, default `VALIDA` |
 
 ## Endpoints
@@ -257,14 +260,48 @@ MongoDB (Mongoose)
 </details>
 
 <details>
+<summary><strong>Ejemplo — crear un evento</strong></summary>
+
+`POST /eventos`
+
+```json
+{
+  "nombre": "Noche de Tango",
+  "descripcion": "Orquesta en vivo y milonga abierta",
+  "fecha": "2027-03-12T21:00",
+  "salaId": "5a1a00000000000000000001",
+  "precio": 9000
+}
+```
+
+`201 Created`
+
+```json
+{
+  "_id": "6ad1a4c21fc328eb410c87d2",
+  "nombre": "Noche de Tango",
+  "descripcion": "Orquesta en vivo y milonga abierta",
+  "fecha": "2027-03-13T00:00:00.000Z",
+  "salaId": "5a1a00000000000000000001",
+  "precio": 9000,
+  "estado": "PROGRAMADO"
+}
+```
+
+La fecha se guarda como `Date` y MongoDB la devuelve en UTC (21:00 en Argentina son las
+00:00 UTC del día siguiente).
+
+</details>
+
+<details>
 <summary><strong>Ejemplo — crear una entrada</strong></summary>
 
 `POST /entradas`
 
 ```json
 {
-  "eventoId": 1,
-  "clienteId": 2,
+  "eventoId": "5a1e00000000000000000002",
+  "clienteId": "5a1c00000000000000000001",
   "precio": 15000
 }
 ```
@@ -273,13 +310,15 @@ MongoDB (Mongoose)
 
 ```json
 {
-  "id": 1,
-  "eventoId": 1,
-  "clienteId": 2,
+  "_id": "6ad1a5f01fc328eb410c87d9",
+  "eventoId": "5a1e00000000000000000002",
+  "clienteId": "5a1c00000000000000000001",
   "precio": 15000,
   "estado": "VALIDA"
 }
 ```
+
+`eventoId` y `clienteId` son los `_id` del evento y del cliente, enviados como texto.
 
 </details>
 
@@ -315,6 +354,15 @@ npm run dev
 La API queda disponible en `http://localhost:3000` y el panel web en
 `http://localhost:3000/panel`.
 
+El seed carga, en este orden, salas, clientes, eventos y entradas. Los documentos de `/data`
+traen un `_id` fijo para que las referencias sean las mismas en la base de cada integrante:
+
+| Colección | Prefijo del `_id` | Ejemplo |
+|---|---|---|
+| `salas` | `5a1a…` | `5a1a00000000000000000001` |
+| `clientes` | `5a1c…` | `5a1c00000000000000000001` |
+| `eventos` | `5a1e…` | `5a1e00000000000000000001` |
+
 Para una base MongoDB local con Docker (coincide con el valor por defecto de `.env.example`):
 
 ```bash
@@ -349,6 +397,6 @@ las pruebas con Thunder Client) está en el Google Drive del equipo — ver el d
 - [x] Reglas de integridad entre sala, evento y entrada
 - [x] Base para MongoDB: conexión con Mongoose, variables de entorno, seed y manejo de errores de Mongoose
 - [x] Sala migrada a MongoDB
-- [ ] Cliente migrado a MongoDB
-- [ ] Evento migrado a MongoDB
+- [x] Cliente migrado a MongoDB
+- [x] Evento migrado a MongoDB
 - [x] Entrada migrada a MongoDB

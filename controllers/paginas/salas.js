@@ -56,7 +56,7 @@ async function detalle(req, res, next) {
     const sala = await salasModel.getSalaById(req.params.id);
     if (!sala) return next();
 
-    // Los eventos todavía guardan salaId como texto: comparamos como texto
+    // salaId es un ObjectId y sala.id es texto: comparamos los dos como texto
     const eventosDeLaSala = (await eventosModel.getAllEventos())
       .filter((e) => String(e.salaId) === sala.id);
     // enriquecerEvento es async: Promise.all espera a que terminen todos

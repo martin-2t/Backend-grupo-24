@@ -1,6 +1,6 @@
 [
   {
-    "id": 1,
+    "_id": "5a1e00000000000000000001",
     "nombre": "Noche de Jazz en Flores",
     "descripcion": "Ciclo de jazz independiente con bandas locales",
     "fecha": "2026-10-05T21:00:00",
@@ -9,7 +9,7 @@
     "estado": "PROGRAMADO"
   },
   {
-    "id": 2,
+    "_id": "5a1e00000000000000000002",
     "nombre": "Rock Under en La Usina",
     "descripcion": "Festival de bandas emergentes de rock",
     "fecha": "2026-11-14T20:00:00",
@@ -18,7 +18,7 @@
     "estado": "PROGRAMADO"
   },
   {
-    "id": 3,
+    "_id": "5a1e00000000000000000003",
     "nombre": "Feria Cultural Palermo",
     "descripcion": "Exposición y espectáculos al aire libre",
     "fecha": "2026-08-20T18:00:00",
@@ -27,7 +27,7 @@
     "estado": "FINALIZADO"
   },
   {
-    "id": 4,
+    "_id": "5a1e00000000000000000004",
     "nombre": "Recital Solidario del Sur",
     "descripcion": "Recital a beneficio de centros culturales asociados",
     "fecha": "2026-12-19T20:30:00",

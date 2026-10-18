@@ -14,7 +14,7 @@ async function listar(req, res, next) {
     };
 
     let entradas = await entradasModel.getAllEntradas();
-    if (filtros.evento) entradas = entradas.filter((e) => e.eventoId === Number(filtros.evento));
+    if (filtros.evento) entradas = entradas.filter((e) => String(e.eventoId) === filtros.evento);
     if (filtros.cliente) entradas = entradas.filter((e) => String(e.clienteId) === filtros.cliente);
     if (filtros.estado) entradas = entradas.filter((e) => e.estado === filtros.estado);
 
@@ -22,7 +22,7 @@ async function listar(req, res, next) {
       titulo: 'Entradas',
       entradas: await Promise.all(entradas.map(enriquecerEntrada)),
       filtros,
-      eventos: eventosModel.getAllEventos(),
+      eventos: await eventosModel.getAllEventos(),
       clientes: await clientesModel.getAll(),
       estados: ['VALIDA', 'RESERVADA', 'CANCELADA'],
     });
@@ -33,7 +33,7 @@ async function listar(req, res, next) {
 
 async function datosFormularioEntrada(seleccionado) {
   return {
-    eventos: await Promise.all(eventosModel.programados().map(enriquecerEvento)),
+    eventos: await Promise.all((await eventosModel.programados()).map(enriquecerEvento)),
     clientes: await clientesModel.getAll(),
     seleccionado: seleccionado ? String(seleccionado) : '',
   };
@@ -67,14 +67,14 @@ async function crear(req, res, next) {
       });
     }
 
-    if (isNaN(numero(eventoId))) return fallar('Elegí un evento.');
+    if (!eventoId || !(await eventosModel.getEventoById(eventoId))) return fallar('Elegí un evento.');
     if (!clienteId || !(await clientesModel.getById(clienteId))) return fallar('Elegí un cliente.');
 
-    const chequeo = await eventosModel.validarVenta(Number(eventoId), clienteId);
+    const chequeo = await eventosModel.validarVenta(eventoId, clienteId);
     if (chequeo.error) return fallar(chequeo.error);
 
     const nueva = await entradasModel.createEntrada({
-      eventoId: Number(eventoId),
+      eventoId,
       clienteId,
       precio: chequeo.evento.precio,
       estado: reservar ? 'RESERVADA' : 'VALIDA',
@@ -91,7 +91,7 @@ async function detalle(req, res, next) {
     const entrada = await entradasModel.getEntradaById(req.params.id);
     if (!entrada) return next();
 
-    const evento = eventosModel.getEventoById(entrada.eventoId);
+    const evento = await eventosModel.getEventoById(entrada.eventoId);
     res.render('entradas/detail', {
       titulo: 'Entrada #' + entrada.id,
       entrada: await enriquecerEntrada(entrada),
