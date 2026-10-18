@@ -9,12 +9,12 @@ async function mostrar(req, res, next) {
     const conteo = await entradasModel.contarPorEstado();
     res.render('index', {
       titulo: 'Panel Urbana Cult',
-      totalEventos: eventosModel.getAllEventos().length,
+      totalEventos: await eventosModel.contarEventos(),
       totalSalas: await salasModel.contarSalas(),
       totalClientes: await clientesModel.contarClientes(),
       entradasVendidas: conteo.vendidas,
       entradasReservadas: conteo.reservadas,
-      proximos: eventosModel.getEventosProximos().slice(0, 3),
+      proximos: (await eventosModel.getEventosProximos()).slice(0, 3),
     });
   } catch (error) {
     next(error);

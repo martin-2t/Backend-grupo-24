@@ -1,75 +1,101 @@
-const fs = require('fs');
-const path = require('path');
+const mongoose = require('mongoose');
 const salasModel = require('./salas');
 const entradasModel = require('./entradas');
 const clientesModel = require('./clientes');
 const { LARGO_MINIMO, texto, numero } = require('./formatos');
 
-// Entidad Evento. Cada evento pertenece a una Sala (salaId)
-class Evento {
-  constructor(id, nombre, descripcion, fecha, salaId, precio, estado = "PROGRAMADO") {
-    this.id = id;
-    this.nombre = nombre;
-    this.descripcion = descripcion;
-    this.fecha = fecha;       // ISO string
-    this.salaId = salaId;
-    this.precio = precio;
-    this.estado = estado;     // PROGRAMADO | FINALIZADO | CANCELADO
-  }
-}
+// Schema: la forma y las reglas de validación de cada documento de la colección "eventos".
+// Cada evento pertenece a una Sala (salaId)
+const eventoSchema = new mongoose.Schema(
+  {
+    nombre: {
+      type: String,
+      required: [true, 'El nombre del evento es obligatorio.'],
+      trim: true,
+      minlength: [LARGO_MINIMO, `El nombre del evento debe tener al menos ${LARGO_MINIMO} caracteres.`],
+    },
+    descripcion: {
+      type: String,
+      trim: true,
+    },
+    fecha: {
+      type: Date,
+      cast: 'La fecha es obligatoria y debe ser válida.',
+      required: [true, 'La fecha es obligatoria y debe ser válida.'],
+    },
+    // El _id (ObjectId) de una sala de MongoDB
+    salaId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Sala',
+      cast: 'El campo "salaId" no es un ID de sala válido.',
+      required: [true, 'La sala es obligatoria.'],
+    },
+    precio: {
+      type: Number,
+      cast: 'El precio debe ser un número.',
+      required: [true, 'El precio es obligatorio.'],
+      min: [0, 'El precio no puede ser negativo.'],
+    },
+    estado: {
+      type: String,
+      enum: {
+        values: ['PROGRAMADO', 'FINALIZADO', 'CANCELADO'],
+        message: 'El estado debe ser PROGRAMADO, FINALIZADO o CANCELADO.',
+      },
+      default: 'PROGRAMADO',
+    },
+  },
+  { versionKey: false }
+);
 
-const filePath = path.join(__dirname, '..', 'data', 'eventos.json');
+// Model: la clase con la que se consulta y se guarda en la colección "eventos"
+const Evento = mongoose.model('Evento', eventoSchema);
 
 // READ | Todos los eventos
-function getAllEventos() {
-  const raw = fs.readFileSync(filePath, 'utf-8');
-  return JSON.parse(raw);
+async function getAllEventos() {
+  return Evento.find();
 }
 
-// READ | Un evento puntual
-function getEventoById(id) {
-  return getAllEventos().find((e) => e.id === Number(id));
+async function contarEventos() {
+  return Evento.countDocuments();
 }
 
-// READ | Eventos próximos: fecha futura y todavía PROGRAMADO
-function getEventosProximos() {
-  const ahora = new Date();
-  return getAllEventos()
-    .filter((e) => e.estado === 'PROGRAMADO' && new Date(e.fecha) > ahora)
-    .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+// READ | Un evento puntual. Un id sin formato de ObjectId no puede existir:
+// devolvemos null (como "no encontrado") en vez de dejar que Mongoose lance un CastError
+async function getEventoById(id) {
+  if (!mongoose.isObjectIdOrHexString(id)) return null;
+  return Evento.findById(id);
 }
 
-// CREATE
-function createEvento(data) {
-  const eventos = getAllEventos();
-  const nuevoId = eventos.length ? Math.max(...eventos.map((e) => e.id)) + 1 : 1;
-  const nuevoEvento = new Evento(nuevoId, data.nombre, data.descripcion, data.fecha, data.salaId, data.precio);
-  eventos.push(nuevoEvento);
-  fs.writeFileSync(filePath, JSON.stringify(eventos, null, 2), 'utf-8');
-  return nuevoEvento;
+// READ | Eventos próximos: fecha futura y todavía PROGRAMADO, el más cercano primero
+async function getEventosProximos() {
+  return Evento.find({ estado: 'PROGRAMADO', fecha: { $gt: new Date() } }).sort({ fecha: 1 });
 }
 
-// UPDATE | Actualización parcial
-function updateEventoById(id, data) {
-  const eventos = getAllEventos();
-  const idx = eventos.findIndex((e) => e.id === Number(id));
-  if (idx === -1) return null;
+// CREATE | El _id lo genera MongoDB y el estado arranca en PROGRAMADO (default del Schema)
+async function createEvento({ nombre, descripcion, fecha, salaId, precio }) {
+  return Evento.create({ nombre, descripcion, fecha, salaId, precio });
+}
+
+// UPDATE | Actualización parcial: solo se pisan los campos que vinieron definidos.
+// save() vuelve a validar el documento completo contra el Schema.
+async function updateEventoById(id, data) {
+  const evento = await getEventoById(id);
+  if (!evento) return null;
 
   const cambios = Object.fromEntries(
     Object.entries(data).filter(([, valor]) => valor !== undefined)
   );
 
-  eventos[idx] = { ...eventos[idx], ...cambios, id: eventos[idx].id };
-  fs.writeFileSync(filePath, JSON.stringify(eventos, null, 2), 'utf-8');
-  return eventos[idx];
+  evento.set(cambios);
+  return evento.save();
 }
 
 // UPDATE | Marca el evento como FINALIZADO (no permite más ventas)
-function finalizarEvento(id) {
+async function finalizarEvento(id) {
   return updateEventoById(id, { estado: 'FINALIZADO' });
 }
 
-// DELETE lógico | Cancela el evento
 // Entradas que se arrastrarían si se cancelara este evento. La usan tanto el aviso
 // de confirmación como la cancelación misma, para que digan siempre lo mismo.
 async function entradasQueSeCancelan(id) {
@@ -101,31 +127,31 @@ function validarCancelacion(evento) {
 }
 
 // Eventos que todavía pueden vender entradas
-function programados() {
-  return getAllEventos().filter((e) => e.estado === 'PROGRAMADO');
+async function programados() {
+  return Evento.find({ estado: 'PROGRAMADO' });
 }
 
 // Reactivar una sala nunca se bloquea; darla de baja sí, si tiene eventos encima
-function validarCambioDeEstadoDeSala(sala) {
+async function validarCambioDeEstadoDeSala(sala) {
   if (sala.estado !== 'ACTIVA') return null;
   return validarBajaDeSala(sala.id);
 }
 
-function programadosEnSala(salaId) {
-  return getAllEventos().filter((e) => String(e.salaId) === String(salaId) && e.estado === 'PROGRAMADO');
+async function programadosEnSala(salaId) {
+  if (!mongoose.isObjectIdOrHexString(salaId)) return [];
+  return Evento.find({ salaId, estado: 'PROGRAMADO' });
 }
 
 // Lugares ocupados del evento más lleno de una sala: el piso al que puede bajar su capacidad
 async function ocupacionMaximaEnSala(salaId) {
-  const ocupados = await Promise.all(
-    programadosEnSala(salaId).map((e) => entradasModel.lugaresOcupados(e.id))
-  );
+  const eventos = await programadosEnSala(salaId);
+  const ocupados = await Promise.all(eventos.map((e) => entradasModel.lugaresOcupados(e.id)));
   return Math.max(0, ...ocupados);
 }
 
 // Un evento programado ocupa su sala: mientras exista, la sala no se puede dar de baja
-function validarBajaDeSala(salaId) {
-  const programados = programadosEnSala(salaId);
+async function validarBajaDeSala(salaId) {
+  const programados = await programadosEnSala(salaId);
   if (!programados.length) return null;
   return 'No se puede dar de baja: la sala tiene ' + programados.length +
     (programados.length === 1 ? ' evento programado' : ' eventos programados') +
@@ -148,7 +174,8 @@ async function validar({ nombre, fecha, salaId, precio }, eventoActual) {
   if (!n) return 'El nombre del evento es obligatorio.';
   if (n.length < LARGO_MINIMO) return 'El nombre del evento debe tener al menos ' + LARGO_MINIMO + ' caracteres.';
 
-  const f = texto(fecha);
+  // La fecha puede llegar como texto (del body) o como Date (del documento guardado)
+  const f = fecha instanceof Date ? fecha : texto(fecha);
   if (!f || isNaN(new Date(f).getTime())) return 'La fecha es obligatoria y debe ser válida.';
   // Un evento nuevo no puede nacer en el pasado. Al editar uno viejo sí se permite,
   // para poder corregir datos de eventos que ya ocurrieron.
@@ -170,7 +197,7 @@ async function validar({ nombre, fecha, salaId, precio }, eventoActual) {
 
   // Si mueven el evento a otra sala, tiene que entrar la gente que ya compró
   if (eventoActual) {
-   const ocupados = await entradasModel.lugaresOcupados(eventoActual.id);
+    const ocupados = await entradasModel.lugaresOcupados(eventoActual.id);
     if (sala.capacidad < ocupados) {
       return 'La sala "' + sala.nombre + '" tiene capacidad ' + sala.capacidad +
         ' y este evento ya tiene ' + ocupados + ' lugares ocupados.';
@@ -182,7 +209,7 @@ async function validar({ nombre, fecha, salaId, precio }, eventoActual) {
 
 // ¿Este evento admite venderle o reservarle una entrada a este cliente?
 async function validarVenta(eventoId, clienteId) {
-  const evento = getEventoById(eventoId);
+  const evento = await getEventoById(eventoId);
   if (!evento) return { error: 'El evento indicado no existe.' };
   if (evento.estado !== 'PROGRAMADO') {
     return { error: 'El evento ya finalizó o fue cancelado: no admite nuevas entradas.' };
@@ -196,7 +223,7 @@ async function validarVenta(eventoId, clienteId) {
     return { error: 'La sala "' + sala.nombre + '" está dada de baja: no se pueden vender entradas.' };
   }
 
- if ((await entradasModel.lugaresOcupados(evento.id)) >= sala.capacidad) { 
+  if ((await entradasModel.lugaresOcupados(evento.id)) >= sala.capacidad) {
     return { error: 'No quedan lugares disponibles para este evento.' };
   }
 
@@ -204,7 +231,9 @@ async function validarVenta(eventoId, clienteId) {
 }
 
 module.exports = {
+  Evento,
   getAllEventos,
+  contarEventos,
   getEventoById,
   getEventosProximos,
   createEvento,
@@ -222,4 +251,4 @@ module.exports = {
   validarCapacidadDeSala,
   validar,
   validarVenta,
-}
+};

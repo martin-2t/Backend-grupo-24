@@ -4,7 +4,8 @@ extends ../layout
 block content
   - var e = evento || {}
   - var esEdicion = Boolean(e.id)
-  - var valorFecha = e.fecha ? String(e.fecha).slice(0, 16) : ''
+  //- Desde MongoDB la fecha llega como Date; si el form volvió con error, como el texto que se tipeó
+  - var valorFecha = !e.fecha ? '' : e.fecha instanceof Date ? new Date(e.fecha.getTime() - e.fecha.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : String(e.fecha).slice(0, 16)
   //- Un evento nuevo no puede quedar en el pasado; al editar uno viejo no ponemos piso
   - var minFecha = esEdicion ? null : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 

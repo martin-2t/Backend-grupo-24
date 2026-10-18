@@ -7,7 +7,7 @@ async function listar(req, res, next) {
   try {
     res.render('eventos/list', {
       titulo: 'Eventos',
-      eventos: await Promise.all(eventosModel.getAllEventos().map(enriquecerEvento)),
+      eventos: await Promise.all((await eventosModel.getAllEventos()).map(enriquecerEvento)),
     });
   } catch (error) {
     next(error);
@@ -44,7 +44,7 @@ async function crear(req, res, next) {
 
     // salaId ya no es un número: es el ObjectId de la sala en MongoDB, como texto
     const { nombre, descripcion, fecha, salaId, precio } = req.body;
-    const nuevo = eventosModel.createEvento({
+    const nuevo = await eventosModel.createEvento({
       nombre,
       descripcion,
       fecha,
@@ -59,7 +59,7 @@ async function crear(req, res, next) {
 
 async function detalle(req, res, next) {
   try {
-    const evento = eventosModel.getEventoById(req.params.id);
+    const evento = await eventosModel.getEventoById(req.params.id);
     if (!evento) return next();
 
     res.render('eventos/detail', {
@@ -77,7 +77,7 @@ async function detalle(req, res, next) {
 
 async function editarForm(req, res, next) {
   try {
-    const evento = eventosModel.getEventoById(req.params.id);
+    const evento = await eventosModel.getEventoById(req.params.id);
     if (!evento) return next();
 
     res.render('eventos/form', {
@@ -94,7 +94,7 @@ async function editarForm(req, res, next) {
 
 async function actualizar(req, res, next) {
   try {
-    const evento = eventosModel.getEventoById(req.params.id);
+    const evento = await eventosModel.getEventoById(req.params.id);
     if (!evento) return next();
 
     const error = await eventosModel.validar(req.body, evento);
@@ -109,7 +109,7 @@ async function actualizar(req, res, next) {
     }
 
     const { nombre, descripcion, fecha, salaId, precio } = req.body;
-    eventosModel.updateEventoById(evento.id, {
+    await eventosModel.updateEventoById(evento.id, {
       nombre,
       descripcion,
       fecha,
@@ -122,22 +122,26 @@ async function actualizar(req, res, next) {
   }
 }
 
-function finalizar(req, res, next) {
-  const evento = eventosModel.getEventoById(req.params.id);
-  if (!evento) return next();
+async function finalizar(req, res, next) {
+  try {
+    const evento = await eventosModel.getEventoById(req.params.id);
+    if (!evento) return next();
 
-  const impedimento = eventosModel.validarFinalizacion(evento);
-  if (impedimento) {
-    return volverConError(res, '/panel/eventos/' + evento.id, impedimento);
+    const impedimento = eventosModel.validarFinalizacion(evento);
+    if (impedimento) {
+      return volverConError(res, '/panel/eventos/' + evento.id, impedimento);
+    }
+
+    await eventosModel.finalizarEvento(evento.id);
+    volver(res, '/panel/eventos/' + evento.id, 'Evento marcado como finalizado.');
+  } catch (error) {
+    next(error);
   }
-
-  eventosModel.finalizarEvento(evento.id);
-  volver(res, '/panel/eventos/' + evento.id, 'Evento marcado como finalizado.');
 }
 
 async function cancelar(req, res, next) {
   try {
-    const evento = eventosModel.getEventoById(req.params.id);
+    const evento = await eventosModel.getEventoById(req.params.id);
     if (!evento) return next();
 
     const impedimento = eventosModel.validarCancelacion(evento);

@@ -30,14 +30,15 @@ async function getEntradaById(req, res, next) {
 //Chequea la forma del body y que evento y cliente existan. Devuelve { error, status }
 //o null si se puede seguir. Lo que no existe es 404; lo que está mal, 400.
 async function chequearReferencias(eventoId, clienteId) {
-  if (!eventoId || typeof eventoId !== 'number') {
-    return { error: 'El campo "eventoId" es obligatorio y debe ser un número', status: 400 };
+  // eventoId es el _id (ObjectId) del evento en MongoDB, que viaja como texto
+  if (!eventoId || typeof eventoId !== 'string') {
+    return { error: 'El campo "eventoId" es obligatorio y debe ser un texto (el id del evento)', status: 400 };
   }
   // clienteId es el _id (ObjectId) del cliente en MongoDB, que viaja como texto
   if (!clienteId || typeof clienteId !== 'string') {
     return { error: 'El campo "clienteId" es obligatorio y debe ser un texto (el id del cliente)', status: 400 };
   }
-  if (!eventosModel.getEventoById(eventoId)) {
+  if (!(await eventosModel.getEventoById(eventoId))) {
     return { error: 'El evento indicado no existe', status: 404 };
   }
   if (!(await clientesModel.getById(clienteId))) {

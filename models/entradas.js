@@ -7,9 +7,11 @@ const mongoose = require('mongoose');
 // Schema: la forma y las reglas de validación de cada documento de la colección "entradas"
 const entradaSchema = new mongoose.Schema(
   {
+    // El _id (ObjectId) de un evento de MongoDB
     eventoId: {
-      type: Number,
-      cast: 'El campo "eventoId" debe ser un número.',
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Evento',
+      cast: 'El campo "eventoId" no es un ID de evento válido.',
       required: [true, 'El campo "eventoId" es obligatorio.'],
     },
     // El _id (ObjectId) de un cliente de MongoDB
@@ -53,7 +55,8 @@ async function getEntradaById(id) {
 
 //Entradas de un evento en particular (todas, sin filtrar por estado)
 async function getEntradasByEvento(eventoId) {
-  return Entrada.find({ eventoId: Number(eventoId) });
+  if (!mongoose.isObjectIdOrHexString(eventoId)) return [];
+  return Entrada.find({ eventoId });
 }
 
 //Crea una entrada (reserva o venta directa, según el estado que le pase el controller)
@@ -83,8 +86,9 @@ async function removeEntrada(id) {
 
 //Lugares ocupados de un evento: vendidas y reservadas ocupan, canceladas liberan
 async function lugaresOcupados(eventoId) {
+  if (!mongoose.isObjectIdOrHexString(eventoId)) return 0;
   return Entrada.countDocuments({
-    eventoId: Number(eventoId),
+    eventoId,
     estado: { $in: ['VALIDA', 'RESERVADA'] },
   });
 }
