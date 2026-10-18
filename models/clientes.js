@@ -59,6 +59,11 @@ async function getById(id) {
   return Cliente.findById(id);
 }
 
+// Búsqueda exacta por email sin distinguir mayúsculas (venta en boletería y registro web)
+async function getByEmail(email) {
+  return Cliente.findOne({ email: String(email).trim() }).collation({ locale: 'es', strength: 2 });
+}
+
 async function create({ nombre, apellido, email, telefono }) {
   return Cliente.create({ nombre, apellido, email, telefono });
 }
@@ -116,6 +121,7 @@ module.exports = {
   contarClientes,
   getAll,
   getById,
+  getByEmail,
   create,
   update,
   remove,

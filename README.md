@@ -4,11 +4,11 @@ API REST para la gestión de eventos culturales y venta de entradas de **Urbana 
 altas, consultas, actualización y baja de clientes, salas, eventos y entradas, evitando la
 sobreventa por planillas separadas. Construida con **Node.js + Express**, siguiendo una
 arquitectura en capas (Router → Controller → Model) con persistencia en **MongoDB** mediante
-**Mongoose**: las cuatro entidades (Sala, Cliente, Evento y Entrada) viven en MongoDB.
+**Mongoose**: las cinco colecciones (Sala, Cliente, Evento, Entrada y Usuario) viven en MongoDB.
 
-Trabajo práctico grupal — Tecnicatura Superior en Desarrollo de Software (IFTS 29),
+Trabajo práctico grupal - Tecnicatura Superior en Desarrollo de Software (IFTS 29),
 materia **Desarrollo de Sistemas Web (Back End)**, 2° cuatrimestre 2026. Caso de
-estudio N° 3: *"Eventos y Entradas — Urbana Cult"*.
+estudio N° 3: *"Eventos y Entradas - Urbana Cult"*.
 
 ![Node.js](https://img.shields.io/badge/Node.js-express-339933?logo=nodedotjs&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)
@@ -26,6 +26,7 @@ estudio N° 3: *"Eventos y Entradas — Urbana Cult"*.
 - [Reglas de negocio](#reglas-de-negocio)
 - [Modelo de datos](#modelo-de-datos)
 - [Endpoints](#endpoints)
+- [Usuarios, roles y login](#usuarios-roles-y-login)
 - [Panel web](#panel-web)
 - [Cómo correrlo en local](#cómo-correrlo-en-local)
 - [Documentación adicional](#documentación-adicional)
@@ -35,7 +36,7 @@ estudio N° 3: *"Eventos y Entradas — Urbana Cult"*.
 
 ## Contexto del ejercicio
 
-> Caso de estudio N° 3 — Desarrollo de Sistemas Web (Back End), IFTS 29
+> Caso de estudio N° 3 - Desarrollo de Sistemas Web (Back End), IFTS 29
 
 Urbana Cult organiza eventos culturales y necesita un sistema que reemplace la gestión
 por planillas sueltas de eventos y entradas, evitando la sobreventa y permitiendo saber
@@ -43,7 +44,8 @@ en todo momento cuántas localidades quedan disponibles por sala.
 
 El foco está puesto en API REST + persistencia + lógica de negocio + validaciones y
 manejo de errores. Sobre esa base se sumó un panel web en Pug que consume los mismos
-datos. No incluye autenticación ni integraciones externas.
+datos. Incluye usuarios con roles y un login básico (sin sesiones ni tokens), y no tiene
+integraciones externas.
 
 ## Integrantes
 
@@ -52,9 +54,9 @@ Equipo **Commit & Chill**:
 | Integrante | Módulo a cargo |
 |---|---|
 | Bravo, Julieta | Ampliación del panel Pug + validaciones y refactor a MVC |
-| Mazzitelli, Matías | Sala (CRUD + baja lógica) · Base para MongoDB (conexión, seed y manejo de errores), migración de Sala a MongoDB y alta de la base en MongoDB Atlas |
-| Piedrabuena, Julián | Entrada (CRUD) |
-| Savia, Martín | Cliente (CRUD) + coordinación del equipo + Cliente (CRUD) · migración de Cliente a MongoDB (Schema con Mongoose y validaciones, seed, vínculo con Entrada mediante clienteId como ObjectId) |
+| Mazzitelli, Matías | Sala (CRUD + baja lógica) · Base para MongoDB (conexión, seed y manejo de errores), migración de Sala a MongoDB, alta de la base en MongoDB Atlas · Usuarios, roles y login |
+| Piedrabuena, Julián | Entrada (CRUD) · migración de Entrada a MongoDB |
+| Savia, Martín | Cliente (CRUD) + coordinación del equipo · migración de Cliente a MongoDB (Schema con Mongoose y validaciones, seed, vínculo con Entrada mediante clienteId como ObjectId) |
 
 ## Stack técnico
 
@@ -99,7 +101,7 @@ MongoDB (Mongoose)
 ├── models             # Schema + reglas de negocio + acceso a datos (uno por entidad)
 ├── routes             # definición de endpoints por recurso
 ├── views              # plantillas Pug del panel
-├── middleware         # logger, notFound, errorHandler
+├── middleware         # logger, notFound, errorHandler · auth, centro y compras (control de acceso)
 ├── public/css         # estilos del panel
 ├── data               # datos iniciales que carga el seed (con _id fijos)
 ├── scripts            # seed.js: carga /data en MongoDB
@@ -137,7 +139,7 @@ entidades se guardan como ObjectId con `ref` al model correspondiente.
 | `email` | `string` | obligatorio, formato válido |
 | `telefono` | `string` | opcional; si se carga, solo números y mínimo 10 dígitos |
 
-**Sala** — colección `salas` en MongoDB
+**Sala** - colección `salas` en MongoDB
 
 | Campo | Tipo | Notas |
 |---|---|---|
@@ -169,41 +171,60 @@ entidades se guardan como ObjectId con `ref` al model correspondiente.
 | `precio` | `number` | mayor o igual a cero; si no se envía, toma el precio del evento (la reserva siempre lo toma) |
 | `estado` | `string` | `VALIDA` / `RESERVADA` / `CANCELADA`, default `VALIDA` |
 
+**Usuario** - colección `usuarios` en MongoDB
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `_id` | `ObjectId` | autogenerado por MongoDB |
+| `nombre` | `string` | obligatorio |
+| `email` | `string` | obligatorio, único, se guarda en minúsculas |
+| `passwordHash` / `salt` | `string` | la contraseña se guarda con hash PBKDF2 + salt (como en la Clase 10); nunca se devuelven en las respuestas |
+| `rol` | `string` | `ADMIN` / `EMPLEADO` / `CLIENTE` |
+| `salaId` | `ObjectId` | obligatorio si es `EMPLEADO`: el centro donde trabaja |
+| `clienteId` | `ObjectId` | obligatorio si es `CLIENTE`: su ficha en `clientes` |
+| `estado` | `string` | `ACTIVO` / `SUSPENDIDO`, default `ACTIVO` |
+| `intentosFallidos` / `bloqueadoHasta` | `number` / `date` | bloqueo temporal tras 3 logins fallidos |
+| `ultimoAcceso` | `date` | fecha del último login correcto |
+
 ## Endpoints
 
-**Raíz** — base path `/`
+Las rutas de escritura y las de información interna requieren el header `x-usuario-id` de un usuario
+autorizado (ver [Usuarios, roles y login](#usuarios-roles-y-login)). Además de los errores de cada tabla,
+responden `401` si no se envía un usuario válido y `403` si su rol no tiene permiso.
+
+**Raíz** - base path `/`
 
 | Método | Ruta | Descripción | Éxito | Errores |
 |---|---|---|---|---|
-| `GET` | `/` | Índice del servicio: versión y recursos disponibles | `200 OK` | — |
+| `GET` | `/` | Índice del servicio: versión y recursos disponibles | `200 OK` | - |
 
-**Clientes** — base path `/clientes`
+**Clientes** - base path `/clientes`
 
 | Método | Ruta | Descripción | Éxito | Errores |
 |---|---|---|---|---|
-| `GET` | `/` | Lista todos los clientes | `200 OK` | — |
+| `GET` | `/` | Lista todos los clientes | `200 OK` | - |
 | `GET` | `/:id` | Obtiene un cliente por id | `200 OK` | `404 Not Found` |
 | `POST` | `/` | Crea un cliente | `201 Created` | `400 Bad Request` |
 | `PUT` | `/:id` | Actualiza un cliente | `200 OK` | `400`, `404` |
 | `DELETE` | `/:id` | Elimina un cliente | `204 No Content` | `400` (tiene entradas vigentes), `404` |
 
-**Salas** — base path `/salas`
+**Salas** - base path `/salas`
 
 | Método | Ruta | Descripción | Éxito | Errores |
 |---|---|---|---|---|
-| `GET` | `/` | Lista todas las salas | `200 OK` | — |
+| `GET` | `/` | Lista todas las salas | `200 OK` | - |
 | `GET` | `/:id` | Obtiene una sala por id | `200 OK` | `404 Not Found` |
 | `GET` | `/nombre/:nombre` | Obtiene una sala por nombre | `200 OK` | `404 Not Found` |
 | `POST` | `/` | Crea una sala | `201 Created` | `400 Bad Request` |
 | `PUT` | `/:id` | Actualiza una sala | `200 OK` | `400`, `404` |
 | `PUT` | `/dis/:id` | Habilita/deshabilita una sala (baja lógica) | `200 OK` | `400` (tiene eventos programados), `404` |
 
-**Eventos** — base path `/eventos`
+**Eventos** - base path `/eventos`
 
 | Método | Ruta | Descripción | Éxito | Errores |
 |---|---|---|---|---|
-| `GET` | `/` | Lista todos los eventos | `200 OK` | — |
-| `GET` | `/proximos` | Eventos programados con fecha futura | `200 OK` | — |
+| `GET` | `/` | Lista todos los eventos | `200 OK` | - |
+| `GET` | `/proximos` | Eventos programados con fecha futura | `200 OK` | - |
 | `GET` | `/:id` | Obtiene un evento por id | `200 OK` | `404 Not Found` |
 | `POST` | `/` | Crea un evento asociado a una sala | `201 Created` | `400`, `404` (sala inexistente) |
 | `PUT` | `/:id` | Actualiza un evento | `200 OK` | `400`, `404` |
@@ -214,7 +235,7 @@ entidades se guardan como ObjectId con `ref` al model correspondiente.
 
 | Método | Ruta | Descripción | Éxito | Errores |
 |---|---|---|---|---|
-| `GET` | `/` | Lista todas las entradas | `200 OK` | — |
+| `GET` | `/` | Lista todas las entradas | `200 OK` | - |
 | `GET` | `/:id` | Obtiene una entrada por id | `200 OK` | `404 Not Found` |
 | `POST` | `/` | Vende una entrada (queda `VALIDA`) | `201 Created` | `400`, `404` |
 | `POST` | `/reservar` | Reserva una entrada (queda `RESERVADA`) | `201 Created` | `400`, `404` |
@@ -227,10 +248,10 @@ entidades se guardan como ObjectId con `ref` al model correspondiente.
 
 | Método | Ruta | Descripción | Éxito | Errores |
 |---|---|---|---|---|
-| `GET` | `/entradas-vendidas` | Entradas vendidas por cada evento | `200 OK` | — |
+| `GET` | `/entradas-vendidas` | Entradas vendidas por cada evento | `200 OK` | - |
 | `GET` | `/entradas-vendidas/:eventoId` | Entradas vendidas de un evento | `200 OK` | `404 Not Found` |
 | `GET` | `/entradas-disponibles/:eventoId` | Capacidad, ocupados y disponibles | `200 OK` | `404 Not Found` |
-| `GET` | `/eventos-proximos` | Eventos programados con fecha futura | `200 OK` | — |
+| `GET` | `/eventos-proximos` | Eventos programados con fecha futura | `200 OK` | - |
 
 <details>
 <summary><strong>Ejemplo — crear una sala</strong></summary>
@@ -296,7 +317,8 @@ La fecha se guarda como `Date` y MongoDB la devuelve en UTC (21:00 en Argentina 
 <details>
 <summary><strong>Ejemplo — crear una entrada</strong></summary>
 
-`POST /entradas`
+`POST /entradas` con el header `x-usuario-id: 05e000000000000000000003` (empleado de La Usina de
+Colegiales, donde se realiza el evento `5a1e00000000000000000002`)
 
 ```json
 {
@@ -322,12 +344,75 @@ La fecha se guarda como `Date` y MongoDB la devuelve en UTC (21:00 en Argentina 
 
 </details>
 
+## Usuarios, roles y login
+
+Login básico **sin sesiones ni tokens**, por indicación de la cátedra para esta etapa:
+
+1. `POST /auth/login` valida email y contraseña contra MongoDB (hash PBKDF2, igual que el login de la Clase 10) y devuelve el usuario con su `_id` y su `rol`.
+2. Para operar sobre rutas protegidas, el cliente envía ese `_id` en el header `x-usuario-id`.
+3. El middleware `autenticar` busca al usuario en la base en cada petición (y rechaza a los suspendidos y bloqueados); `permitir(...roles)` controla el rol (**RBAC**) y `soloSuCentro` limita a cada empleado a su propio centro (**ABAC**: control por atributos).
+
+**Intentos fallidos:** al tercer login fallido la cuenta queda **bloqueada 15 minutos** (se desbloquea
+sola al vencer, o antes si un `ADMIN` usa `PUT /usuarios/:id/desbloquear`). Cada error informa cuántos
+intentos quedan, y un login correcto reinicia el contador. Mientras dura el bloqueo tampoco se puede
+operar con el header.
+
+> **Limitación conocida:** cualquiera que conozca un `_id` puede enviarlo en el header. Se resuelve
+> en la próxima etapa con sesiones o JWT.
+
+**Autenticación** — base path `/auth`
+
+| Método | Ruta | Descripción | Éxito | Errores |
+|---|---|---|---|---|
+| `POST` | `/login` | Login con `{ email, password }` | `200 OK` | `400`, `401` (credenciales), `403` (suspendido o bloqueado) |
+| `POST` | `/registro` | Alta de un cliente web: crea (o reutiliza) su ficha y su usuario `CLIENTE` | `201 Created` | `400`, `409` (email repetido) |
+| `GET` | `/yo` | Usuario del header `x-usuario-id` | `200 OK` | `401`, `403` |
+| `GET` | `/mis-entradas` | Entradas del cliente logueado (solo `CLIENTE`) | `200 OK` | `401`, `403` |
+
+**Usuarios** — base path `/usuarios` (solo `ADMIN`): `GET /`, `GET /:id`, `POST /`, `PUT /:id` (incluye
+suspender con `{ "estado": "SUSPENDIDO" }`), `PUT /:id/desbloquear` y `DELETE /:id`. Errores: `400`,
+`404`, `409` (email repetido).
+
+### Matriz de permisos
+
+| Acción | Sin login | CLIENTE | EMPLEADO | ADMIN |
+|---|---|---|---|---|
+| Ver salas, eventos, próximos y disponibilidad | ✅ | ✅ | ✅ | ✅ |
+| Crear y dar de baja salas | ❌ | ❌ | ❌ | ✅ |
+| Editar una sala | ❌ | ❌ | solo la suya | ✅ |
+| Crear, editar, finalizar y cancelar eventos | ❌ | ❌ | solo de su centro | ✅ |
+| Comprar / vender y reservar entradas | ❌ | para sí mismo | solo de su centro | ✅ |
+| Confirmar, cancelar y corregir entradas | ❌ | ❌ | solo de su centro | ✅ |
+| Ver una entrada | ❌ | solo las propias | solo de su centro | ✅ |
+| Gestionar clientes y ver ventas | ❌ | ❌ | ✅ | ✅ |
+| Eliminar clientes y entradas · gestionar usuarios | ❌ | ❌ | ❌ | ✅ |
+
+**Compra web vs. boletería:** cuando compra un `CLIENTE`, el `clienteId` y el precio se toman de su
+usuario y del evento (no del body). En boletería, el `EMPLEADO` puede enviar un `clienteId` o los datos
+del comprador en `"cliente": { nombre, apellido, email, telefono }`: si ya existe un cliente con ese
+email se usa su ficha; si no, se crea en el momento.
+
+### Usuarios de prueba (los carga `npm run seed`)
+
+| Email | Contraseña | Rol |
+|---|---|---|
+| `admin@urbanacult.com` | `admin1234` | ADMIN |
+| `empleado.flores@urbanacult.com` | `flores1234` | EMPLEADO - Centro Cultural Flores |
+| `empleado.usina@urbanacult.com` | `usina1234` | EMPLEADO - La Usina de Colegiales |
+| `empleado.palermo@urbanacult.com` | `palermo1234` | EMPLEADO - suspendido (para probar el bloqueo) |
+| `juanperez@mail.com` | `cliente1234` | CLIENTE |
+| `tomasaguirre@mail.com` | `cliente1234` | CLIENTE |
+
+Son credenciales de prueba para desarrollo; en la base se guardan con hash.
+
 ## Panel web
 
 Interfaz en Pug sobre los mismos datos, montada bajo `/panel`.
 
 | Sección | Ruta | Qué permite |
 |---|---|---|
+| Ingresar | `/panel/login` | Login: muestra el rol, sus permisos y el id para operar por la API |
+| Crear cuenta | `/panel/registro` | Registro web de clientes |
 | Inicio | `/panel` | Totales del sistema y próximos eventos |
 | Eventos | `/panel/eventos` | Listado con disponibilidad, alta, edición, detalle con sus entradas, finalizar y cancelar |
 | Salas | `/panel/salas` | Listado con búsqueda por nombre, alta, edición, detalle y baja/alta lógica |
@@ -338,23 +423,27 @@ Interfaz en Pug sobre los mismos datos, montada bajo `/panel`.
 Los formularios HTML solo envían `GET` y `POST`, así que las acciones que en la API
 son `PUT` (finalizar, cancelar, confirmar, dar de baja) en el panel se exponen como `POST`.
 
+Sin sesiones, el panel no puede "recordar" quién ingresó al pasar de una página a otra, por eso
+el control de roles se aplica en la API. El panel queda como herramienta interna hasta incorporar
+sesiones.
+
 ## Cómo correrlo en local
 
-**Prerrequisitos**: Node.js y una base MongoDB (local o en MongoDB Atlas).
+**Prerrequisitos**: Node.js **20.19 o superior** (lo exige Mongoose 9) y una base MongoDB (local o en MongoDB Atlas).
 
 ```bash
 git clone https://github.com/martin-2t/Backend-grupo-24.git
 cd Backend-grupo-24
 npm install
 cp .env.example .env    # y completar MONGODB_URI
-npm run seed            # carga los datos iniciales de /data (vacía las colecciones antes)
+npm run seed            # carga los datos iniciales y los usuarios de prueba (vacía las colecciones antes)
 npm run dev
 ```
 
 La API queda disponible en `http://localhost:3000` y el panel web en
 `http://localhost:3000/panel`.
 
-El seed carga, en este orden, salas, clientes, eventos y entradas. Los documentos de `/data`
+El seed carga, en este orden, salas, clientes, eventos, entradas y usuarios. Los documentos de `/data`
 traen un `_id` fijo para que las referencias sean las mismas en la base de cada integrante:
 
 | Colección | Prefijo del `_id` | Ejemplo |
@@ -362,8 +451,9 @@ traen un `_id` fijo para que las referencias sean las mismas en la base de cada 
 | `salas` | `5a1a…` | `5a1a00000000000000000001` |
 | `clientes` | `5a1c…` | `5a1c00000000000000000001` |
 | `eventos` | `5a1e…` | `5a1e00000000000000000001` |
+| `usuarios` | `05e0…` | `05e000000000000000000001` |
 
-Para una base MongoDB local con Docker (coincide con el valor por defecto de `.env.example`):
+Para una base MongoDB local con Docker (en `.env`, descomentar la línea local de `.env.example`):
 
 ```bash
 docker run -d --name urbana-mongo -p 127.0.0.1:27017:27017 mongo:8
@@ -379,7 +469,7 @@ Atlas (por ejemplo, `urbana-cult-martin`), así `npm run seed` nunca borra datos
 ## Documentación adicional
 
 La documentación completa de la entrega (integrantes, objetivos, alcance y capturas de
-las pruebas con Thunder Client) está en el Google Drive del equipo — ver el documento
+las pruebas con Thunder Client) está en el Google Drive del equipo - ver el documento
 `DSWB_24_COMMIT&CHILL_2C26`.
 
 ## Roadmap
@@ -400,3 +490,6 @@ las pruebas con Thunder Client) está en el Google Drive del equipo — ver el d
 - [x] Cliente migrado a MongoDB
 - [x] Evento migrado a MongoDB
 - [x] Entrada migrada a MongoDB
+- [x] Usuarios con roles (ADMIN, EMPLEADO, CLIENTE), login básico y control de acceso (RBAC + centro propio)
+- [ ] Proyecto migrado de CommonJS a ES Modules (ECMAScript)
+- [ ] Sesiones o JWT (próxima etapa)

@@ -16,6 +16,12 @@ function errorHandler(err, req, res, next) {
     mensaje = 'El valor "' + err.value + '" no tiene un formato válido.';
   }
 
+  // MongoDB: se violó un índice único (por ejemplo, un email de usuario repetido)
+  if (err.code === 11000) {
+    status = 409;
+    mensaje = 'Ya existe un registro con ese valor: ' + JSON.stringify(err.keyValue) + '.';
+  }
+
   // express.json(): el body no es un JSON válido. Es un error del cliente, no del servidor
   if (err.type === 'entity.parse.failed') {
     status = 400;

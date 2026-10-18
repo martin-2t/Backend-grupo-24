@@ -14,15 +14,24 @@ const conectarDB = require('../config/db');
 const { Sala } = require('../models/salas');
 const { Entrada } = require('../models/entradas');
 const { Cliente } = require('../models/clientes');
+const { Usuario } = require('../models/usuarios');
 const { Evento } = require('../models/eventos');
+
+// Los usuarios de prueba traen la contraseña en texto: se reemplaza por salt + hash
+// antes de guardar, así en la base nunca queda una contraseña real
+function prepararUsuario({ password, ...usuario }) {
+  return { ...usuario, ...Usuario.crearPasswordSeguro(password) };
+}
 
 // Cada entidad que está en Mongo tiene aquí su model y su archivo de datos.
 // El orden acompaña las referencias: el evento apunta a una sala, y la entrada a un evento y un cliente
+// "preparar" es opcional: transforma cada documento antes de insertarlo.
 const colecciones = [
   { model: Sala, archivo: 'salas.json' },
   { model: Cliente, archivo: 'clientes.json' },
   { model: Evento, archivo: 'eventos.json' },
   { model: Entrada, archivo: 'entradas.json' },
+  { model: Usuario, archivo: 'usuarios.json', preparar: prepararUsuario },
 ];
 
 function leerDatos(archivo) {
@@ -33,8 +42,8 @@ function leerDatos(archivo) {
 async function sembrar() {
   await conectarDB();
 
-  for (const { model, archivo } of colecciones) {
-    const datos = leerDatos(archivo);
+  for (const { model, archivo, preparar } of colecciones) {
+    const datos = preparar ? leerDatos(archivo).map(preparar) : leerDatos(archivo);
     await model.deleteMany({});
     await model.insertMany(datos);
     console.log(`${model.collection.name}: ${datos.length} documentos cargados`);
