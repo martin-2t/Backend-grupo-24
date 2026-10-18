@@ -67,7 +67,7 @@ Equipo **Commit & Chill**:
 | Framework | Express 4 |
 | Vistas | Pug |
 | Persistencia | MongoDB + Mongoose (local o MongoDB Atlas) |
-| Datos iniciales | Archivos JSON en `/data`, que carga `npm run seed` |
+| Datos iniciales | Archivos JSON en `scripts/semillas`, que carga `npm run seed` |
 | Configuración | Variables de entorno con `dotenv` (archivo `.env`) |
 | Pruebas de endpoints | Thunder Client |
 
@@ -104,8 +104,9 @@ MongoDB (Mongoose)
 ├── views              # plantillas Pug del panel
 ├── middleware         # logger, notFound, errorHandler · auth, centro y compras (control de acceso)
 ├── public/css         # estilos del panel
-├── data               # datos iniciales que carga el seed (con _id fijos)
-├── scripts            # seed.js: carga /data en MongoDB
+├── scripts
+│   ├── seed.js        # carga las semillas en MongoDB (npm run seed)
+│   └── semillas       # datos iniciales en JSON, con _id fijos
 └── index.js           # conecta a MongoDB y levanta el servidor
 ```
 
@@ -444,7 +445,7 @@ npm run dev
 La API queda disponible en `http://localhost:3000` y el panel web en
 `http://localhost:3000/panel`.
 
-El seed carga, en este orden, salas, clientes, eventos, entradas y usuarios. Los documentos de `/data`
+El seed carga, en este orden, salas, clientes, eventos, entradas y usuarios. Los documentos de `scripts/semillas`
 traen un `_id` fijo para que las referencias sean las mismas en la base de cada integrante:
 
 | Colección | Prefijo del `_id` | Ejemplo |

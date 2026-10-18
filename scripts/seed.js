@@ -1,7 +1,8 @@
-// Carga los datos iniciales de /data en MongoDB. Se ejecuta con: npm run seed
+// Carga los datos iniciales de scripts/semillas en MongoDB. Se ejecuta con: npm run seed
 // ATENCIÓN: vacía cada colección antes de cargarla.
 //
-// Los documentos de /data traen un _id fijo (por ejemplo, la sala 1 es
+// Las semillas son solo datos de arranque: la aplicación persiste todo en MongoDB.
+// Sus documentos traen un _id fijo (por ejemplo, la sala 1 es
 // "5a1a00000000000000000001" y el evento 1 es "5a1e00000000000000000001"), así las
 // referencias entre colecciones son las mismas
 // en la base de cada integrante y en Atlas.
@@ -25,7 +26,7 @@ function prepararUsuario({ password, ...usuario }) {
 }
 
 // Cada entidad que está en Mongo tiene aquí su model y su archivo de datos.
-// El orden acompaña las referencias: el evento apunta a una sala, y la entrada a un evento y un cliente
+// El orden acompaña las referencias: el evento apunta a una sala, y la entrada a un evento y un cliente.
 // "preparar" es opcional: transforma cada documento antes de insertarlo.
 const colecciones = [
   { model: Sala, archivo: 'salas.json' },
@@ -36,7 +37,7 @@ const colecciones = [
 ];
 
 function leerDatos(archivo) {
-  const ruta = path.join(import.meta.dirname, '..', 'data', archivo);
+  const ruta = path.join(import.meta.dirname, 'semillas', archivo);
   return JSON.parse(fs.readFileSync(ruta, 'utf-8'));
 }
 
