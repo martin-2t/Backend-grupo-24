@@ -69,3 +69,4 @@ async function iniciar() {
 }
 
 iniciar();
+export default app;
