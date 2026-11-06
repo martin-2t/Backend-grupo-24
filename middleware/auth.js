@@ -1,18 +1,27 @@
-// Autenticación y autorización sin sesiones ni tokens (indicación de la cátedra para esta
-// etapa): después del login, el cliente envía el _id del usuario en el header x-usuario-id
-// y el servidor lo busca en MongoDB en cada petición. Cualquiera que conozca un _id podría
-// usarlo: esa limitación se resuelve más adelante con sesiones o JWT.
+// Autenticación y autorización con JWT: después del login, el cliente envía el token en el
+// header "Authorization: Bearer <token>". El servidor verifica la firma y la vigencia del
+// token y busca al usuario en MongoDB en cada petición (así un usuario suspendido o
+// bloqueado pierde el acceso aunque su token siga vigente).
+import jwt from 'jsonwebtoken';
 import * as usuariosModel from '../models/usuarios.js';
 
 // Autenticación: ¿quién es? Deja el usuario en req.usuario para los middlewares siguientes
 async function autenticar(req, res, next) {
   try {
-    const id = req.get('x-usuario-id');
-    if (!id) {
-      return res.status(401).json({ error: 'Iniciá sesión: falta el header x-usuario-id.' });
+    const cabecera = req.get('authorization') || '';
+    const [tipo, token] = cabecera.split(' ');
+    if (tipo !== 'Bearer' || !token) {
+      return res.status(401).json({ error: 'Iniciá sesión: falta el header Authorization: Bearer <token>.' });
     }
 
-    const usuario = await usuariosModel.getById(id);
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return res.status(401).json({ error: 'Token inválido o vencido. Volvé a iniciar sesión.' });
+    }
+
+    const usuario = await usuariosModel.getById(payload.id);
     if (!usuario) {
       return res.status(401).json({ error: 'Usuario no válido.' });
     }
@@ -29,7 +38,6 @@ async function autenticar(req, res, next) {
     next(error);
   }
 }
-
 // Autorización por rol (RBAC): ¿puede hacerlo? Se usa por ruta, después de autenticar.
 // Ejemplo: router.post('/', autenticar, permitir('ADMIN'), controller)
 function permitir(...roles) {
@@ -40,5 +48,4 @@ function permitir(...roles) {
     next();
   };
 }
-
 export { autenticar, permitir };

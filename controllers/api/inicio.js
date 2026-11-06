@@ -9,7 +9,7 @@ function mostrar(req, res) {
     autenticacion: {
       login: 'POST /auth/login',
       registro: 'POST /auth/registro',
-      usuarioActual: 'GET /auth/yo (header x-usuario-id)',
+      usuarioActual: 'GET /auth/yo (header Authorization: Bearer <token>)',
     },
     recursos: {
       usuarios: '/usuarios',
