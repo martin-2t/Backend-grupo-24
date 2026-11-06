@@ -14,15 +14,15 @@ block content
     ul
       each permiso in permisos
         li= permiso
-
+   
   .panel-dato
     h3 Cómo operar por la API
     p
-      | Este login todavía no crea una sesión. Para operar por la API, enviá tu identificador en el header
-      code  x-usuario-id
-      | :
-    p
-      code= usuario.id
+      | Este login del panel no crea una sesión. Para operar por la API, iniciá sesión con
+      code  POST /auth/login
+      |  y enviá el token que devuelve en el header
+      code  Authorization: Bearer &lt;token&gt;
+      | .
 
   .barra
     a.btn(href="/panel") Ir al panel
