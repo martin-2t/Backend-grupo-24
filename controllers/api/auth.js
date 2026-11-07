@@ -1,7 +1,9 @@
-// Login y registro por API (JSON). Mismo criterio que el login de la Clase 10: se busca el
-// usuario por email y se compara el hash de la contraseña. No se crean sesiones ni tokens.
+// Login y registro por API (JSON). Se busca el usuario por email, se compara el hash de la
+// contraseña y, si es correcta, se firma un JWT (JWS, HS256) que se envía en una cookie
+// httpOnly y también en el cuerpo de la respuesta (para probar con Authorization: Bearer).
 import * as usuariosModel from '../../models/usuarios.js';
 import * as clientesModel from '../../models/clientes.js';
+import { generarToken, guardarCookie, borrarCookie } from '../../config/jwt.js';
 
 // POST /auth/login  { email, password }
 async function login(req, res, next) {
@@ -11,13 +13,24 @@ async function login(req, res, next) {
     if (resultado.error) {
       return res.status(resultado.status).json({ error: resultado.error });
     }
+
+    const token = generarToken(resultado.usuario);
+    guardarCookie(res, token);
+
     return res.status(200).json({
-      mensaje: 'Login correcto. Enviá el _id en el header x-usuario-id para operar.',
+      mensaje: 'Login correcto.',
+      token,
       usuario: resultado.usuario,
     });
   } catch (error) {
     next(error);
   }
+}
+
+// POST /auth/logout
+function logout(req, res) {
+  borrarCookie(res);
+  res.status(200).json({ mensaje: 'Sesión cerrada.' });
 }
 
 // POST /auth/registro  { nombre, apellido, email, telefono, password }
@@ -34,7 +47,7 @@ async function registro(req, res, next) {
   }
 }
 
-// GET /auth/yo: el usuario que envía el header (sirve para comprobar el login)
+// GET /auth/yo: el usuario autenticado (sirve para comprobar el login)
 function yo(req, res) {
   res.status(200).json(req.usuario);
 }
@@ -48,4 +61,4 @@ async function misEntradas(req, res, next) {
   }
 }
 
-export { login, registro, yo, misEntradas };
+export { login, logout, registro, yo, misEntradas };

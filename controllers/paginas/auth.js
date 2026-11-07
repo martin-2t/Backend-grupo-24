@@ -1,7 +1,9 @@
-// Login y registro del panel, como en la Clase 10: el login valida email y contraseña
-// contra MongoDB y muestra el resultado. Sin sesiones, la página no "recuerda" al usuario.
+// Login y registro del panel. El login valida email y contraseña contra MongoDB, firma un
+// JWT y lo guarda en una cookie httpOnly: así la página "recuerda" al usuario entre
+// peticiones sin guardar nada en el servidor.
 import * as usuariosModel from '../../models/usuarios.js';
 import * as salasModel from '../../models/salas.js';
+import { generarToken, guardarCookie, borrarCookie } from '../../config/jwt.js';
 import { volver } from './comunes.js';
 
 // Resumen de la matriz de permisos que aplica la API, para mostrar al ingresar
@@ -38,6 +40,8 @@ async function login(req, res, next) {
     }
 
     const { usuario } = resultado;
+    guardarCookie(res, generarToken(usuario));
+
     const sala = usuario.salaId ? await salasModel.getSalaById(usuario.salaId) : null;
     res.render('auth/bienvenida', {
       titulo: 'Bienvenida',
@@ -48,6 +52,12 @@ async function login(req, res, next) {
   } catch (error) {
     next(error);
   }
+}
+
+// POST /panel/logout: borra la cookie con el token
+function logout(req, res) {
+  borrarCookie(res);
+  volver(res, '/panel/login', 'Sesión cerrada.');
 }
 
 function registroForm(req, res) {
@@ -76,4 +86,4 @@ async function registro(req, res, next) {
   }
 }
 
-export { loginForm, login, registroForm, registro };
+export { loginForm, login, logout, registroForm, registro };

@@ -2,6 +2,7 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import path from 'path';
+import cookieParser from 'cookie-parser';
 import conectarDB from './config/db.js';
 
 // middlewares propios
@@ -33,10 +34,12 @@ const PORT = process.env.PORT || 3000;
 // motor de plantillas Pug
 app.set('view engine', 'pug');
 app.set('views', path.join(import.meta.dirname, 'views'));
+
 app.use(logger);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // para leer los formularios de las vistas Pug
+app.use(cookieParser()); // lee la cookie "token" del JWT
 app.use('/public', express.static(path.join(import.meta.dirname, 'public')));
 
 // declaracion de rutas de la API (JSON)

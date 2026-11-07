@@ -5,6 +5,7 @@ import { autenticar, permitir } from '../middleware/auth.js';
 const router = express.Router();
 
 router.post('/login', authController.login);
+router.post('/logout', authController.logout);
 router.post('/registro', authController.registro);
 router.get('/yo', autenticar, authController.yo);
 router.get('/mis-entradas', autenticar, permitir('CLIENTE'), authController.misEntradas);

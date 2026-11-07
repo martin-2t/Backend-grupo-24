@@ -16,14 +16,10 @@ block content
         li= permiso
 
   .panel-dato
-    h3 Cómo operar por la API
+    h3 Tu sesión
     p
-      | Este login todavía no crea una sesión. Para operar por la API, enviá tu identificador en el header
-      code  x-usuario-id
-      | :
-    p
-      code= usuario.id
+      | Iniciaste sesión con un token JWT guardado en una cookie segura. La sesión dura 2 horas
+      | y se cierra con el botón "Salir".
 
   .barra
     a.btn(href="/panel") Ir al panel
-    a.btn.secundario(href="/panel/login") Volver al login

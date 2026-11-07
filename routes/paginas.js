@@ -2,6 +2,7 @@
 // así que lo que en la API es PUT (finalizar, cancelar, confirmar, baja) acá va por POST.
 import express from 'express';
 
+import { cargarUsuario, requerirLogin } from '../middleware/auth.js';
 import * as comunes from '../controllers/paginas/comunes.js';
 import * as inicio from '../controllers/paginas/inicio.js';
 import * as eventos from '../controllers/paginas/eventos.js';
@@ -14,11 +15,18 @@ import * as auth from '../controllers/paginas/auth.js';
 const router = express.Router();
 
 router.use(comunes.localesComunes);
+// Identifica al usuario (si hay token válido) para que las vistas muestren su nombre
+router.use(cargarUsuario);
 
+// Rutas públicas: no piden login
 router.get('/login', auth.loginForm);
 router.post('/login', auth.login);
+router.post('/logout', auth.logout);
 router.get('/registro', auth.registroForm);
 router.post('/registro', auth.registro);
+
+// Todo lo que sigue exige haber iniciado sesión
+router.use(requerirLogin);
 
 router.get('/', inicio.mostrar);
 router.get('/consultas', consultas.mostrar);
