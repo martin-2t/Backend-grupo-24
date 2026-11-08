@@ -7,26 +7,38 @@ import * as salasModel from '../models/salas.js';
 import * as eventosModel from '../models/eventos.js';
 import * as entradasModel from '../models/entradas.js';
 
-// Recibe una función que, dada la petición, devuelve las salas involucradas.
-// Si devuelve null, el recurso no existe: dejamos pasar y el controller responde 404.
-function soloSuCentro(obtenerSalas) {
-  return async (req, res, next) => {
+const MENSAJE_AJENO = 'Solo podés operar sobre tu propio centro.';
+
+// Arma el middleware. "rechazar" decide cómo responder cuando la sala es ajena:
+// JSON para la API, redirección con aviso para el panel.
+function controlDeCentro(rechazar) {
+  // Recibe una función que, dada la petición, devuelve las salas involucradas.
+  // Si devuelve null, el recurso no existe: dejamos pasar y el controller responde 404.
+  return (obtenerSalas) => async (req, res, next) => {
     try {
-      if (req.usuario.rol !== 'EMPLEADO') return next();
+      if (!['EMPLEADO', 'REPRESENTANTE'].includes(req.usuario.rol)) return next();
 
       const salas = await obtenerSalas(req);
       if (salas === null) return next();
 
       const ajenas = salas.filter((salaId) => String(salaId) !== String(req.usuario.salaId));
-      if (ajenas.length) {
-        return res.status(403).json({ error: 'Solo podés operar sobre tu propio centro.' });
-      }
+      if (ajenas.length) return rechazar(req, res);
       next();
     } catch (error) {
       next(error);
     }
   };
 }
+
+// API: 403 en JSON
+const soloSuCentro = controlDeCentro((req, res) =>
+  res.status(403).json({ error: MENSAJE_AJENO })
+);
+
+// Panel: vuelve al inicio con un aviso
+const soloSuCentroPagina = controlDeCentro((req, res) =>
+  res.redirect('/panel?error=' + encodeURIComponent(MENSAJE_AJENO))
+);
 
 // PUT /salas/:id
 async function salaDelParametro(req) {
@@ -61,6 +73,7 @@ async function salaDeLaEntrada(req) {
 
 export {
   soloSuCentro,
+  soloSuCentroPagina,
   salaDelParametro,
   salaDelBody,
   salasDelEvento,

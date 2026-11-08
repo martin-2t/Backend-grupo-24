@@ -433,3 +433,9 @@ td a.btn.baja { color: #454b4b; }
   table { display: block; overflow-x: auto; }
   .encabezado { flex-direction: column; }
 }
+
+/* Etiquetas de la pantalla de usuarios */
+.badge.ACTIVO { background: #2e7d4f; color: #fff; }
+.badge.SUSPENDIDO { background: #b3392f; color: #fff; }
+.badge.BLOQUEADO { background: #c27c0e; color: #fff; }
+.badge.REPRESENTANTE { background: #1f5f8b; color: #fff; }

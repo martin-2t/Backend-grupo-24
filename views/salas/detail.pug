@@ -1,6 +1,11 @@
 extends ../layout
 
 block content
+  - const rol = usuario ? usuario.rol : null
+  - const esAdmin = rol === 'ADMIN'
+  //- Editar: ADMIN, o el REPRESENTANTE de esta sala. Baja y reactivación: solo ADMIN
+  - const puedeEditar = esAdmin || (rol === 'REPRESENTANTE' && String(sala.id) === String(usuario.salaId))
+
   .encabezado
     div
       h2= sala.nombre
@@ -8,12 +13,14 @@ block content
         span.badge(class=sala.estado)= sala.estado
         span  · #{sala.direccion}
     .acciones
-      a.btn.editar(href="/panel/salas/" + sala.id + "/editar") Editar
-      form.enlinea(method="POST" action="/panel/salas/" + sala.id + "/estado" onsubmit=(sala.estado === 'ACTIVA' ? "return confirm('¿Dar de baja esta sala?')" : null))
-        if sala.estado === 'ACTIVA'
-          button.btn.baja(type="submit") Dar de baja
-        else
-          button.btn.baja(type="submit") Reactivar
+      if puedeEditar
+        a.btn.editar(href="/panel/salas/" + sala.id + "/editar") Editar
+      if esAdmin
+        form.enlinea(method="POST" action="/panel/salas/" + sala.id + "/estado" onsubmit=(sala.estado === 'ACTIVA' ? "return confirm('¿Dar de baja esta sala?')" : null))
+          if sala.estado === 'ACTIVA'
+            button.btn.baja(type="submit") Dar de baja
+          else
+            button.btn.baja(type="submit") Reactivar
 
   .cards
     .card

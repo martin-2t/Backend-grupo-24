@@ -4,7 +4,9 @@ import { EMAIL } from './formatos.js';
 import * as salasModel from './salas.js';
 import * as clientesModel from './clientes.js';
 
-const ROLES = ['ADMIN', 'EMPLEADO', 'CLIENTE'];
+const ROLES = ['ADMIN', 'REPRESENTANTE', 'EMPLEADO', 'CLIENTE'];
+// Los roles que trabajan en un centro: necesitan una sala asignada (salaId)
+const ROLES_DE_CENTRO = ['REPRESENTANTE', 'EMPLEADO'];
 const PASSWORD_MINIMO = 8;
 
 // Política de intentos fallidos: al tercer error, la cuenta se bloquea por un tiempo
@@ -38,7 +40,7 @@ const usuarioSchema = new mongoose.Schema(
     },
     rol: {
       type: String,
-      enum: { values: ROLES, message: 'El rol debe ser ADMIN, EMPLEADO o CLIENTE.' },
+      enum: { values: ROLES, message: 'El rol debe ser ADMIN, REPRESENTANTE, EMPLEADO o CLIENTE.' },
       required: [true, 'El rol es obligatorio.'],
     },
     // El centro donde trabaja: solo lo tienen (y lo necesitan) los empleados
@@ -267,6 +269,7 @@ async function registrarCliente({ nombre, apellido, email, telefono, password })
 export {
   Usuario,
   ROLES,
+  ROLES_DE_CENTRO,
   PASSWORD_MINIMO,
   chequearPassword,
   chequearReferencias,

@@ -62,12 +62,19 @@ async function detalle(req, res, next) {
     const evento = await eventosModel.getEventoById(req.params.id);
     if (!evento) return next();
 
+    // Las entradas muestran el nombre de cada comprador: solo las ve el ADMIN
+    // o el personal de la sala donde se hace el evento
+    const { rol, salaId } = req.usuario;
+    const puedeVerEntradas =
+      rol === 'ADMIN' ||
+      (['EMPLEADO', 'REPRESENTANTE'].includes(rol) && String(evento.salaId) === String(salaId));
+
     res.render('eventos/detail', {
       titulo: evento.nombre,
       evento: await enriquecerEvento(evento),
-      entradas: await Promise.all(
-        (await entradasModel.getEntradasByEvento(evento.id)).map(enriquecerEntrada)
-      ),
+      entradas: puedeVerEntradas
+        ? await Promise.all((await entradasModel.getEntradasByEvento(evento.id)).map(enriquecerEntrada))
+        : [],
       aArrastrar: (await eventosModel.entradasQueSeCancelan(evento.id)).length,
     });
   } catch (error) {

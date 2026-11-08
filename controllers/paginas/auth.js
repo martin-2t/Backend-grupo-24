@@ -10,19 +10,23 @@ import { volver } from './comunes.js';
 const PERMISOS = {
   ADMIN: [
     'Gestionar todas las salas, eventos, entradas y clientes de la red.',
-    'Dar de alta empleados y administrar los usuarios.',
+    'Dar de alta empleados y gerentes, y administrar los usuarios.',
+  ],
+  REPRESENTANTE: [
+    'Crear y editar los eventos y los datos de su centro.',
+    'Hacer todo lo que hace un cajero: vender, reservar, confirmar y cancelar entradas de su centro, y gestionar clientes.',
+    'Dar de alta, suspender, activar y desbloquear a los empleados de su centro.',
   ],
   EMPLEADO: [
-    'Crear y editar los eventos de su centro.',
     'Vender, reservar, confirmar y cancelar entradas de su centro (boletería).',
-    'Editar los datos de su centro y consultar o cargar clientes.',
+    'Consultar o cargar clientes.',
+    'Ver la cartelera de eventos y los datos de las salas.',
   ],
   CLIENTE: [
     'Ver la cartelera de eventos de los 25 centros.',
     'Comprar entradas para sí mismo y consultar las propias.',
   ],
 };
-
 function loginForm(req, res) {
   res.render('auth/login', { titulo: 'Ingresar', error: null, email: '' });
 }

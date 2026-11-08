@@ -8,8 +8,9 @@ function mostrar(req, res) {
     panel: '/panel',
     autenticacion: {
       login: 'POST /auth/login',
+      logout: 'POST /auth/logout',
       registro: 'POST /auth/registro',
-      usuarioActual: 'GET /auth/yo (header x-usuario-id)',
+      usuarioActual: 'GET /auth/yo (cookie "token" o header Authorization: Bearer)',
     },
     recursos: {
       usuarios: '/usuarios',

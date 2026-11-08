@@ -76,7 +76,7 @@ function requerirLogin(req, res, next) {
   res.redirect('/panel/login?error=' + encodeURIComponent(aviso));
 }
 
-// Autorización por rol (RBAC): ¿puede hacerlo? Se usa por ruta, después de autenticar.
+// Autorización por rol (RBAC) para la API: ¿puede hacerlo? Se usa por ruta, después de autenticar.
 // Ejemplo: router.post('/', autenticar, permitir('ADMIN'), controller)
 function permitir(...roles) {
   return (req, res, next) => {
@@ -87,4 +87,15 @@ function permitir(...roles) {
   };
 }
 
-export { autenticar, cargarUsuario, requerirLogin, permitir };
+// Lo mismo para el panel: en vez de un JSON 403, vuelve al inicio con un aviso.
+// Va después de requerirLogin. /panel lo pueden ver todos los roles, así que no hay bucle
+function permitirPagina(...roles) {
+  return (req, res, next) => {
+    if (!roles.includes(req.usuario.rol)) {
+      return res.redirect('/panel?error=' + encodeURIComponent('Tu rol no tiene permiso para esta acción.'));
+    }
+    next();
+  };
+}
+
+export { autenticar, cargarUsuario, requerirLogin, permitir, permitirPagina };

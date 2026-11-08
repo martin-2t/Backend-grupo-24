@@ -1,0 +1,40 @@
+extends ../layout
+
+block content
+  h2 Nuevo usuario
+
+  if error
+    .error= error
+
+  form.simple(method="POST" action="/panel/usuarios/nuevo")
+    label(for="nombre") Nombre
+    input#nombre(type="text" name="nombre" value=valores.nombre required)
+
+    label(for="apellido") Apellido
+    input#apellido(type="text" name="apellido" value=valores.apellido required)
+
+    label(for="email") Email
+    input#email(type="email" name="email" value=valores.email required placeholder="nombre@correo.com")
+
+    label(for="password") Contraseña
+    input#password(type="password" name="password" required minlength=passwordMinimo)
+    p.nota Mínimo #{passwordMinimo} caracteres. La persona puede usarla para ingresar desde el primer momento.
+
+    label(for="rol") Rol
+    select#rol(name="rol" required)
+      each r in roles
+        option(value=r selected=(valores.rol === r))= r
+
+    if puedeElegirSala
+      label(for="salaId") Centro
+      select#salaId(name="salaId")
+        option(value="") Sin centro
+        each s in salas
+          option(value=s.id selected=(valores.salaId === s.id))= s.nombre
+      p.nota El centro es obligatorio para REPRESENTANTE y EMPLEADO. Para ADMIN se ignora.
+    else if salas.length
+      p.nota Se crea como EMPLEADO de tu centro: #{salas[0].nombre}.
+
+    .barra
+      button.btn(type="submit") Crear usuario
+      a.btn.secundario(href='/panel/usuarios') Volver

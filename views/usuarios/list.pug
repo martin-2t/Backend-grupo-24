@@ -1,0 +1,47 @@
+extends ../layout
+
+block content
+  h2 Usuarios
+
+  .barra
+    a.btn(href="/panel/usuarios/nuevo") + Nuevo usuario
+
+  table
+    thead
+      tr
+        th #
+        th Nombre
+        th Email
+        th Rol
+        th Centro
+        th Estado
+        th Acciones
+    tbody
+      if usuarios.length === 0
+        tr
+          td.vacio(colspan="7") Todavía no hay usuarios cargados.
+      each u, i in usuarios
+        - var bloqueado = Boolean(u.bloqueadoHasta && u.bloqueadoHasta > new Date())
+        tr
+          td= i + 1
+          td= u.nombre
+          td= u.email
+          td
+            span.badge(class=u.rol)= u.rol
+          td= u.salaId ? (nombreSala[String(u.salaId)] || 'Sala eliminada') : '—'
+          td
+            span.badge(class=u.estado)= u.estado
+            if bloqueado
+              span.badge  Bloqueado
+          td.acciones
+            if u.id !== usuario.id
+              .grupo
+                form.enlinea(method="POST" action="/panel/usuarios/" + u.id + "/estado" onsubmit="return confirm('¿Cambiar el estado de este usuario?')")
+                  button.btn.chico(type="submit" class=(u.estado === 'ACTIVO' ? 'peligro' : 'editar'))= u.estado === 'ACTIVO' ? 'Suspender' : 'Activar'
+                if bloqueado
+                  form.enlinea(method="POST" action="/panel/usuarios/" + u.id + "/desbloquear")
+                    button.btn.chico.secundario(type="submit") Desbloquear
+            else
+              span.vacio Tu cuenta
+
+  p.nota Un usuario suspendido no puede ingresar ni operar, aunque tenga la sesión abierta.

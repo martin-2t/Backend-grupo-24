@@ -1,10 +1,18 @@
 extends ../layout
 
 block content
+  - const rol = usuario ? usuario.rol : null
+  - const esAdmin = rol === 'ADMIN'
+  - const esGerencia = esAdmin || rol === 'REPRESENTANTE'
+  - const esPersonal = rol !== null && rol !== 'CLIENTE'
+  //- El ADMIN opera sobre todo; el resto del personal, solo sobre la sala donde trabaja
+  - const esMiSala = (salaId) => esAdmin || String(salaId) === String(usuario.salaId)
+
   h2 Eventos
 
-  .barra
-    a.btn(href="/panel/eventos/nuevo") + Nuevo evento
+  if esGerencia
+    .barra
+      a.btn(href="/panel/eventos/nuevo") + Nuevo evento
 
   table
     thead
@@ -33,6 +41,7 @@ block content
           td.acciones
             .grupo
               a.btn.chico.secundario(href="/panel/eventos/" + evento.id) Ver
-              a.btn.chico.editar(href="/panel/eventos/" + evento.id + "/editar") Editar
-              if evento.estado === 'PROGRAMADO' && evento.disponibles > 0
+              if esGerencia && esMiSala(evento.salaId)
+                a.btn.chico.editar(href="/panel/eventos/" + evento.id + "/editar") Editar
+              if esPersonal && esMiSala(evento.salaId) && evento.estado === 'PROGRAMADO' && evento.disponibles > 0
                 a.btn.chico(href="/panel/entradas/nueva?evento=" + evento.id) Vender

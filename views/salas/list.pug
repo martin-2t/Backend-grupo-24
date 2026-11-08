@@ -1,10 +1,17 @@
 extends ../layout
 
 block content
+  - const rol = usuario ? usuario.rol : null
+  - const esAdmin = rol === 'ADMIN'
+  //- Editar: ADMIN, o el REPRESENTANTE de esa sala. Alta y baja: solo ADMIN
+  - const puedeEditar = (salaId) => esAdmin || (rol === 'REPRESENTANTE' && String(salaId) === String(usuario.salaId))
+  - const conAcciones = esAdmin || rol === 'REPRESENTANTE'
+
   h2 Salas
 
   .barra
-    a.btn(href="/panel/salas/nueva") + Nueva sala
+    if esAdmin
+      a.btn(href="/panel/salas/nueva") + Nueva sala
     form.buscador(method="GET" action="/panel/salas")
       input(type="text" name="q" placeholder="Buscar por nombre exacto" value=busqueda)
       button.btn.secundario(type="submit") Buscar
@@ -21,11 +28,12 @@ block content
         th Dirección
         th Capacidad
         th Estado
-        th Acciones
+        if conAcciones
+          th Acciones
     tbody
       if salas.length === 0
         tr
-          td.vacio(colspan="5") No hay salas para mostrar.
+          td.vacio(colspan=(conAcciones ? 5 : 4)) No hay salas para mostrar.
       each sala in salas
         tr
           td
@@ -34,11 +42,14 @@ block content
           td= sala.capacidad
           td
             span.badge(class=sala.estado)= sala.estado
-          td.acciones
-            .grupo
-              a.btn.chico.editar(href="/panel/salas/" + sala.id + "/editar") Editar
-              form.enlinea(method="POST" action="/panel/salas/" + sala.id + "/estado" onsubmit=(sala.estado === 'ACTIVA' ? "return confirm('¿Dar de baja esta sala?')" : null))
-                if sala.estado === 'ACTIVA'
-                  button.btn.chico.baja(type="submit") Dar de baja
-                else
-                  button.btn.chico.baja(type="submit") Reactivar
+          if conAcciones
+            td.acciones
+              .grupo
+                if puedeEditar(sala.id)
+                  a.btn.chico.editar(href="/panel/salas/" + sala.id + "/editar") Editar
+                if esAdmin
+                  form.enlinea(method="POST" action="/panel/salas/" + sala.id + "/estado" onsubmit=(sala.estado === 'ACTIVA' ? "return confirm('¿Dar de baja esta sala?')" : null))
+                    if sala.estado === 'ACTIVA'
+                      button.btn.chico.baja(type="submit") Dar de baja
+                    else
+                      button.btn.chico.baja(type="submit") Reactivar

@@ -1,6 +1,15 @@
 extends ../layout
 
 block content
+  - const rol = usuario ? usuario.rol : null
+  - const esAdmin = rol === 'ADMIN'
+  - const esGerencia = esAdmin || rol === 'REPRESENTANTE'
+  - const esPersonal = rol !== null && rol !== 'CLIENTE'
+  //- El ADMIN opera sobre todo; el resto del personal, solo sobre la sala del evento donde trabaja
+  - const esMiSala = esAdmin || String(evento.salaId) === String(usuario.salaId)
+  - const puedeGestionar = esGerencia && esMiSala
+  - const puedeOperar = esPersonal && esMiSala
+
   //- aArrastrar lo calcula el controller: la regla de qué entradas se arrastran es del model
   - var avisoCancelar = '¿Cancelar este evento?'
   if aArrastrar === 1
@@ -15,13 +24,15 @@ block content
         span.badge(class=evento.estado)= evento.estado
         span  · #{evento.sala} · #{new Date(evento.fecha).toLocaleString('es-AR')}
     .acciones
-      a.btn.editar(href="/panel/eventos/" + evento.id + "/editar") Editar
+      if puedeGestionar
+        a.btn.editar(href="/panel/eventos/" + evento.id + "/editar") Editar
       if evento.estado === 'PROGRAMADO'
-        if evento.disponibles > 0
+        if puedeOperar && evento.disponibles > 0
           a.btn(href="/panel/entradas/nueva?evento=" + evento.id) Vender entrada
-        form.enlinea(method="POST" action="/panel/eventos/" + evento.id + "/finalizar" onsubmit="return confirm('¿Finalizar este evento? No va a admitir más ventas.')")
-          button.btn.baja(type="submit") Finalizar
-      if evento.estado !== 'CANCELADO'
+        if puedeGestionar
+          form.enlinea(method="POST" action="/panel/eventos/" + evento.id + "/finalizar" onsubmit="return confirm('¿Finalizar este evento? No va a admitir más ventas.')")
+            button.btn.baja(type="submit") Finalizar
+      if puedeGestionar && evento.estado !== 'CANCELADO'
         form.enlinea(method="POST" action="/panel/eventos/" + evento.id + "/cancelar" onsubmit="return confirm('" + avisoCancelar + "')")
           button.btn.baja(type="submit") Cancelar evento
 
@@ -44,35 +55,37 @@ block content
       h3 Descripción
       p= evento.descripcion
 
-  h3 Entradas de este evento
-  if entradas.length === 0
-    p.vacio Todavía no se vendieron ni reservaron entradas para este evento.
-  else
-    table
-      thead
-        tr
-          th #
-          th Cliente
-          th Precio
-          th Estado
-          th Acciones
-      tbody
-        each entrada in entradas
+  //- Las entradas muestran el nombre de cada comprador: solo las ve el personal de este centro
+  if puedeOperar
+    h3 Entradas de este evento
+    if entradas.length === 0
+      p.vacio Todavía no se vendieron ni reservaron entradas para este evento.
+    else
+      table
+        thead
           tr
-            td= entrada.id
-            td= entrada.cliente
-            td= '$' + entrada.precio
-            td
-              span.badge(class=entrada.estado)= entrada.estado
-            td.acciones
-              .grupo
-                a.btn.chico.secundario(href="/panel/entradas/" + entrada.id) Ver
-                if entrada.estado === 'RESERVADA'
-                  form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/confirmar")
-                    button.btn.chico(type="submit") Confirmar
-                if entrada.estado !== 'CANCELADA'
-                  form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/cancelar" onsubmit="return confirm('¿Cancelar esta entrada? El lugar quedará liberado.')")
-                    button.btn.chico.baja(type="submit") Cancelar
+            th #
+            th Cliente
+            th Precio
+            th Estado
+            th Acciones
+        tbody
+          each entrada in entradas
+            tr
+              td= entrada.id
+              td= entrada.cliente
+              td= '$' + entrada.precio
+              td
+                span.badge(class=entrada.estado)= entrada.estado
+              td.acciones
+                .grupo
+                  a.btn.chico.secundario(href="/panel/entradas/" + entrada.id) Ver
+                  if entrada.estado === 'RESERVADA'
+                    form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/confirmar")
+                      button.btn.chico(type="submit") Confirmar
+                  if entrada.estado !== 'CANCELADA'
+                    form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/cancelar" onsubmit="return confirm('¿Cancelar esta entrada? El lugar quedará liberado.')")
+                      button.btn.chico.baja(type="submit") Cancelar
 
   p.volver
     a(href="/panel/eventos") ← Volver a eventos

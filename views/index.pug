@@ -1,6 +1,8 @@
 extends layout
 
 block content
+  - const esPersonal = usuario && usuario.rol !== 'CLIENTE'
+  - const esGerencia = usuario && (usuario.rol === 'ADMIN' || usuario.rol === 'REPRESENTANTE')
   h2 Panel general
 
   .cards
@@ -10,20 +12,23 @@ block content
     a.card(href="/panel/salas")
       div Salas
       .num= totalSalas
-    a.card(href="/panel/clientes")
-      div Clientes
-      .num= totalClientes
-    a.card(href="/panel/entradas?estado=VALIDA")
-      div Entradas vendidas
-      .num= entradasVendidas
-    a.card(href="/panel/entradas?estado=RESERVADA")
-      div Reservas activas
-      .num= entradasReservadas
+    if esPersonal
+      a.card(href="/panel/clientes")
+        div Clientes
+        .num= totalClientes
+      a.card(href="/panel/entradas?estado=VALIDA")
+        div Entradas vendidas
+        .num= entradasVendidas
+      a.card(href="/panel/entradas?estado=RESERVADA")
+        div Reservas activas
+        .num= entradasReservadas
 
-  .barra
-    a.btn(href="/panel/entradas/nueva") Vender entrada
-    a.btn(href="/panel/eventos/nuevo") + Nuevo evento
-    a.btn.secundario(href="/panel/consultas") Ver consultas
+  if esPersonal
+    .barra
+      a.btn(href="/panel/entradas/nueva") Vender entrada
+      if esGerencia
+        a.btn(href="/panel/eventos/nuevo") + Nuevo evento
+      a.btn.secundario(href="/panel/consultas") Ver consultas
 
   h2 Próximos eventos
   if proximos.length === 0
@@ -35,7 +40,8 @@ block content
           th Evento
           th Fecha
           th Precio
-          th
+          if esPersonal
+            th
       tbody
         each evento in proximos
           tr
@@ -43,5 +49,6 @@ block content
               a(href="/panel/eventos/" + evento.id)= evento.nombre
             td= new Date(evento.fecha).toLocaleString('es-AR')
             td= '$' + evento.precio
-            td.acciones
-              a.btn.chico(href="/panel/entradas/nueva?evento=" + evento.id) Vender
+            if esPersonal
+              td.acciones
+                a.btn.chico(href="/panel/entradas/nueva?evento=" + evento.id) Vender
