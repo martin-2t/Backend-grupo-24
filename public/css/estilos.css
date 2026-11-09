@@ -440,3 +440,20 @@ td a.btn.baja { color: #454b4b; }
 .badge.BLOQUEADO { background: #c27c0e; color: #fff; }
 .badge.REPRESENTANTE { background: #1f5f8b; color: #fff; }
 .badge.AUDITOR { background: #5b4b8a; color: #fff; }
+/* ------------------------------------------------------------------ */
+/* Check-in con QR                                                     */
+/* ------------------------------------------------------------------ */
+.badge.USADA { background: #5b6b73; }
+
+.qr-ingreso { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; margin-bottom: 18px; }
+.qr-ingreso img { background: #fff; padding: 8px; border: 1px solid #d7dcdc; border-radius: 8px; }
+.qr-ingreso div { flex: 1 1 260px; min-width: 0; }
+code.codigo { display: inline-block; margin-left: 6px; padding: 2px 6px; background: #eef2f1; border-radius: 4px; word-break: break-all; }
+
+.checkin { border-radius: 10px; padding: 18px 20px; margin-bottom: 18px; color: #fff; }
+.checkin p { margin: 6px 0 0; }
+.checkin-titulo { font-size: 1.6rem; font-weight: 700; }
+.checkin.aprobado { background: #2f9e6e; }
+.checkin.rechazo { background: #c0443b; }
+.checkin form { margin-top: 12px; }
+.btn.grande { font-size: 1.1rem; padding: 12px 26px; background: #fff; color: #1f6f4f; }

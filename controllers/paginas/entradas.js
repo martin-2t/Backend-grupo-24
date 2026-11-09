@@ -2,8 +2,9 @@
 import * as entradasModel from '../../models/entradas.js';
 import * as eventosModel from '../../models/eventos.js';
 import * as clientesModel from '../../models/clientes.js';
+import * as usuariosModel from '../../models/usuarios.js';
 import { numero } from '../../models/formatos.js';
-import { volver, volverConError, enriquecerEvento, enriquecerEntrada } from './comunes.js';
+import { volver, volverConError, enriquecerEvento, enriquecerEntrada, qrDeIngreso } from './comunes.js';
 
 async function listar(req, res, next) {
   try {
@@ -24,7 +25,7 @@ async function listar(req, res, next) {
       filtros,
       eventos: await eventosModel.getAllEventos(),
       clientes: await clientesModel.getAll(),
-      estados: ['VALIDA', 'RESERVADA', 'CANCELADA'],
+      estados: ['VALIDA', 'RESERVADA', 'USADA', 'CANCELADA'],
     });
   } catch (error) {
     next(error);
@@ -90,15 +91,23 @@ async function crear(req, res, next) {
 
 async function detalle(req, res, next) {
   try {
-    const entrada = await entradasModel.getEntradaById(req.params.id);
-    if (!entrada) return next();
+    const encontrada = await entradasModel.getEntradaById(req.params.id);
+    if (!encontrada) return next();
+    // Las entradas anteriores al check-in reciben su código acá, la primera vez que se muestran
+    const entrada = await entradasModel.asegurarCodigo(encontrada);
 
     const evento = await eventosModel.getEventoById(entrada.eventoId);
+    const validador = entrada.validadaPor ? await usuariosModel.getById(entrada.validadaPor) : null;
     res.render('entradas/detail', {
       titulo: 'Entrada #' + entrada.id,
       entrada: await enriquecerEntrada(entrada),
       evento: evento ? await enriquecerEvento(evento) : null,
       cliente: await clientesModel.getById(entrada.clienteId),
+      // Una entrada cancelada ya no tiene QR para mostrar
+      qr: entrada.estado === 'CANCELADA' ? null : await qrDeIngreso(req, entrada.codigo),
+      validador: validador ? validador.nombre : null,
+      // El botón "Simular lectura" es para quien valida en la puerta: el personal del centro
+      puedeValidar: ['EMPLEADO', 'REPRESENTANTE'].includes(req.usuario.rol),
     });
   } catch (error) {
     next(error);

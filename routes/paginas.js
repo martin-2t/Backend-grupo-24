@@ -12,6 +12,7 @@ import {
   salasDelEvento,
   salaDelEventoDelBody,
   salaDeLaEntrada,
+  salaDeLaEntradaPorCodigo,
 } from '../middleware/centro.js';
 import * as comunes from '../controllers/paginas/comunes.js';
 import * as inicio from '../controllers/paginas/inicio.js';
@@ -22,6 +23,7 @@ import * as entradas from '../controllers/paginas/entradas.js';
 import * as consultas from '../controllers/paginas/consultas.js';
 import * as auth from '../controllers/paginas/auth.js';
 import * as usuarios from '../controllers/paginas/usuarios.js';
+import * as checkin from '../controllers/paginas/checkin.js';
 
 const router = express.Router();
 
@@ -108,5 +110,12 @@ router.post('/entradas/:id/confirmar', personal, soloSuCentroPagina(salaDeLaEntr
 router.post('/entradas/:id/cancelar', personal, soloSuCentroPagina(salaDeLaEntrada), entradas.cancelar);
 router.post('/entradas/:id/precio', personal, soloSuCentroPagina(salaDeLaEntrada), entradas.actualizarPrecio);
 router.post('/entradas/:id/eliminar', soloAdmin, entradas.eliminar);
+
+// Check-in en la puerta: el EMPLEADO y el REPRESENTANTE, solo en su propio centro. El ADMIN no
+// valida ingresos: es una tarea del lugar, no de la administración del sistema (mínimo privilegio)
+const puerta = permitirPagina('EMPLEADO', 'REPRESENTANTE');
+router.get('/checkin', puerta, checkin.buscar);
+router.get('/checkin/:codigo', puerta, soloSuCentroPagina(salaDeLaEntradaPorCodigo), checkin.mostrar);
+router.post('/checkin/:codigo', puerta, soloSuCentroPagina(salaDeLaEntradaPorCodigo), checkin.validar);
 
 export default router;

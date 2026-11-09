@@ -1,1 +1,5 @@
-[]
+[
+  {"_id": "5a1f00000000000000000001", "eventoId": "5a1e00000000000000000005", "clienteId": "5a1c00000000000000000001", "precio": 9000, "estado": "VALIDA", "codigo": "DemoIngresoValida00001"},
+  {"_id": "5a1f00000000000000000002", "eventoId": "5a1e00000000000000000005", "clienteId": "5a1c00000000000000000002", "precio": 9000, "estado": "VALIDA", "codigo": "DemoIngresoValida00002"},
+  {"_id": "5a1f00000000000000000003", "eventoId": "5a1e00000000000000000005", "clienteId": "5a1c00000000000000000003", "precio": 9000, "estado": "RESERVADA", "codigo": "DemoIngresoReserva0003"}
+]

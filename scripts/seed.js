@@ -25,13 +25,28 @@ function prepararUsuario({ password, ...usuario }) {
   return { ...usuario, ...Usuario.crearPasswordSeguro(password) };
 }
 
+// Un evento puede traer "fechaRelativa" en vez de "fecha": { "dias": 0, "hora": "21:00" } es hoy
+// a las 21 (hora de Buenos Aires), { "dias": 1, ... } mañana. Sirve para el evento de demostración
+// del check-in con QR, que solo se valida el día del evento: corriendo la semilla el día de la
+// prueba, ese evento siempre es "hoy". Las entradas de demostración traen códigos fijos y legibles
+// (DemoIngreso...) para encontrarlas fácil; las entradas reales reciben un código aleatorio
+function prepararEvento({ fechaRelativa, ...evento }) {
+  if (!fechaRelativa) return evento;
+  const enMilisegundos = Date.now() + fechaRelativa.dias * 24 * 60 * 60 * 1000;
+  const dia = new Date(enMilisegundos).toLocaleDateString('en-CA', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+  }); // AAAA-MM-DD
+  // Argentina está siempre en UTC-3 (no cambia la hora en verano)
+  return { ...evento, fecha: new Date(`${dia}T${fechaRelativa.hora}:00-03:00`) };
+}
+
 // Cada entidad que está en Mongo tiene aquí su model y su archivo de datos.
 // El orden acompaña las referencias: el evento apunta a una sala, y la entrada a un evento y un cliente.
 // "preparar" es opcional: transforma cada documento antes de insertarlo.
 const colecciones = [
   { model: Sala, archivo: 'salas.json' },
   { model: Cliente, archivo: 'clientes.json' },
-  { model: Evento, archivo: 'eventos.json' },
+  { model: Evento, archivo: 'eventos.json', preparar: prepararEvento },
   { model: Entrada, archivo: 'entradas.json' },
   { model: Usuario, archivo: 'usuarios.json', preparar: prepararUsuario },
 ];

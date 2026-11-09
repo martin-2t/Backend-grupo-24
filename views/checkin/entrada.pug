@@ -1,0 +1,47 @@
+extends ../layout
+
+//- Pantalla que ve el personal en la puerta, normalmente en el celular. El recuadro de color
+//- dice de un vistazo si la persona puede pasar; el detalle queda debajo.
+block content
+  h2 Ingreso al evento
+
+  if noEncontrada
+    .checkin.rechazo
+      .checkin-titulo Entrada no encontrada
+      p= noEncontrada
+  else
+    - const recienValidada = mensaje && entrada.estado === 'USADA'
+    if recienValidada
+      .checkin.aprobado
+        .checkin-titulo Adentro
+        p= 'Ingreso registrado a las ' + new Date(entrada.usadaEn).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) + '.'
+    else if !motivo
+      .checkin.aprobado
+        .checkin-titulo Puede ingresar
+        form(method="POST" action="/panel/checkin/" + entrada.codigo)
+          button.btn.grande(type="submit") Validar ingreso
+    else
+      .checkin.rechazo
+        .checkin-titulo= entrada.estado === 'USADA' ? 'Ya ingresó' : 'No puede ingresar'
+        p= motivo
+        if validador
+          p= 'Validada por ' + validador + '.'
+
+    table
+      tbody
+        tr
+          th Evento
+          td= evento ? evento.nombre + ' · ' + new Date(evento.fecha).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hourCycle: 'h23' }) : 'Evento eliminado'
+        tr
+          th Sala
+          td= evento ? evento.sala : 'Sin sala'
+        tr
+          th Cliente
+          td= cliente
+        tr
+          th Estado
+          td
+            span.badge(class=entrada.estado)= entrada.estado
+
+  p.volver
+    a(href="/panel/checkin") ← Validar otra entrada

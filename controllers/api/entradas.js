@@ -148,6 +148,25 @@ async function updateEntrada(req, res, next) {
   }
 }
 
+//POST /entradas/checkin { codigo }: valida la entrada en el ingreso al evento (el código del QR).
+//Las reglas (estado, día del evento, doble escaneo) viven en el model
+async function checkin(req, res, next) {
+  try {
+    const { codigo } = req.body;
+    if (!codigo || typeof codigo !== 'string') {
+      return res.status(400).json({ error: 'El campo "codigo" es obligatorio y debe ser un texto (el código del QR).' });
+    }
+
+    const resultado = await entradasModel.ingresar(codigo, req.usuario.id);
+    if (resultado.error) {
+      return res.status(resultado.status).json({ error: resultado.error });
+    }
+    return res.status(200).json({ mensaje: 'Ingreso registrado.', entrada: resultado.entrada });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function deleteEntrada(req, res, next) {
   try {
     const eliminada = await entradasModel.removeEntrada(req.params.id);
@@ -169,4 +188,5 @@ export {
   cancelarEntrada,
   updateEntrada,
   deleteEntrada,
+  checkin,
 };

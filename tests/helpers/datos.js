@@ -40,11 +40,13 @@ function crearCliente(numero = 1) {
   });
 }
 
-// Crea un usuario y devuelve también su token, listo para el header Authorization
-async function crearUsuarioConToken({ rol = 'ADMIN', salaId, clienteId } = {}) {
+// Crea un usuario y devuelve también su token, listo para el header Authorization.
+// "email" es opcional: hace falta para crear dos usuarios con el mismo rol (por ejemplo, un
+// empleado de cada centro), porque el email por defecto sale del rol y no se puede repetir
+async function crearUsuarioConToken({ rol = 'ADMIN', salaId, clienteId, email } = {}) {
   const usuario = await usuariosModel.create({
     nombre: 'Usuario Prueba',
-    email: `${rol.toLowerCase()}@urbanacult.com`,
+    email: email || `${rol.toLowerCase()}@urbanacult.com`,
     password: 'clave-de-prueba',
     rol,
     salaId,

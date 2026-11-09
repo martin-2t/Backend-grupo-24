@@ -14,7 +14,7 @@ async function entradasVendidas(req, res, next) {
         return res.status(404).json({ error: 'Evento no encontrado' });
       }
       const entradas = await entradasModel.getEntradasByEvento(eventoId);
-      const vendidas = entradas.filter((e) => e.estado === 'VALIDA').length;
+      const vendidas = entradas.filter((e) => ['VALIDA', 'USADA'].includes(e.estado)).length;
       return res.status(200).json({ eventoId: evento.id, evento: evento.nombre, vendidas });
     }
 
@@ -26,7 +26,7 @@ async function entradasVendidas(req, res, next) {
         return {
           eventoId: evento.id,
           evento: evento.nombre,
-          vendidas: entradas.filter((e) => e.estado === 'VALIDA').length,
+          vendidas: entradas.filter((e) => ['VALIDA', 'USADA'].includes(e.estado)).length,
         };
       })
     );
