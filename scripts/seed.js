@@ -12,7 +12,7 @@ import fs from 'fs';
 import mongoose from 'mongoose';
 import conectarDB from '../config/db.js';
 import { Sala } from '../models/salas.js';
-import { Entrada } from '../models/entradas.js';
+import { Entrada, recalcularLugares } from '../models/entradas.js';
 import { Cliente } from '../models/clientes.js';
 import { Usuario } from '../models/usuarios.js';
 import { Evento } from '../models/eventos.js';
@@ -50,6 +50,12 @@ async function sembrar() {
     await model.insertMany(datos);
     console.log(`${model.collection.name}: ${datos.length} documentos cargados`);
   }
+
+  // insertMany no pasa por createEntrada: el contador de lugares de cada evento se calcula
+  // al final, contando sus entradas
+  const eventos = await Evento.find();
+  await Promise.all(eventos.map((evento) => recalcularLugares(evento.id)));
+  console.log(`eventos: contador de lugares ocupados calculado en ${eventos.length} eventos`);
 
   await mongoose.disconnect();
 }

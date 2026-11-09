@@ -67,6 +67,10 @@ async function crearEntrada(req, res, next, estado) {
       estado === 'VALIDA' && typeof precio === 'number' ? precio : chequeo.evento.precio;
 
     const nueva = await entradasModel.createEntrada({ eventoId, clienteId, precio: precioFinal, estado });
+    //null: otra compra simultánea ocupó el último lugar entre el chequeo y la creación
+    if (!nueva) {
+      return res.status(400).json({ error: entradasModel.SIN_LUGARES });
+    }
     return res.status(201).json(nueva);
   } catch (error) {
     next(error);

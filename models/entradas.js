@@ -1,9 +1,6 @@
 // Model: la clase con la que se consulta y se guarda en la colección "entradas"
 import mongoose from 'mongoose';
 
-
-
-
 // Schema: la forma y las reglas de validación de cada documento de la colección "entradas"
 const entradaSchema = new mongoose.Schema(
   {
@@ -59,12 +56,84 @@ async function getEntradasByEvento(eventoId) {
   return Entrada.find({ eventoId });
 }
 
-//Crea una entrada (reserva o venta directa, según el estado que le pase el controller)
-async function createEntrada({ eventoId, clienteId, precio, estado }) {
-  return Entrada.create({ eventoId, clienteId, precio, estado });
+// ---- Stock único: control de sobreventa ----
+// Cada evento lleva un contador "lugaresOcupados". Contar las entradas y después crear la
+// nueva no alcanza: si dos compras llegan juntas por el último lugar, las dos cuentan
+// "queda uno" y las dos se crean. Por eso el lugar se ocupa con UNA sola operación de
+// MongoDB, "sumá 1 solo si todavía hay lugar", que es atómica: dos compras nunca pueden
+// ganar el mismo lugar.
+//
+// Los models Evento y Sala se piden por nombre a Mongoose (en vez de importarlos) porque
+// models/eventos.js ya importa este archivo, y así no se arma un ciclo de imports.
+
+const OCUPAN_LUGAR = ['VALIDA', 'RESERVADA'];
+const SIN_LUGARES = 'No quedan lugares disponibles para este evento.';
+
+function ocupaLugar(estado) {
+  return OCUPAN_LUGAR.includes(estado);
 }
 
-//Actualización parcial: solo se pisan los campos que vinieron definidos
+// Pone el contador en el valor real contando las entradas. Lo usa la semilla después de
+// cargar los datos, porque insertMany no pasa por createEntrada
+async function recalcularLugares(eventoId) {
+  const ocupados = await lugaresOcupados(eventoId);
+  await mongoose.model('Evento').updateOne({ _id: eventoId }, { $set: { lugaresOcupados: ocupados } });
+}
+
+// Los eventos creados antes de que existiera el contador no lo tienen guardado: la primera
+// vez se calcula contando. El filtro $exists hace que solo lo inicialice una petición
+async function inicializarContador(eventoId) {
+  const ocupados = await lugaresOcupados(eventoId);
+  await mongoose.model('Evento').updateOne(
+    { _id: eventoId, lugaresOcupados: { $exists: false } },
+    { $set: { lugaresOcupados: ocupados } }
+  );
+}
+
+// Intenta ocupar un lugar del evento. Devuelve true si lo consiguió, false si está lleno
+async function ocuparLugar(eventoId) {
+  const Evento = mongoose.model('Evento');
+  const evento = await Evento.findById(eventoId);
+  if (!evento) return false;
+  const sala = await mongoose.model('Sala').findById(evento.salaId);
+  if (!sala) return false;
+
+  await inicializarContador(eventoId);
+
+  // La operación atómica: si el contador ya llegó a la capacidad, el filtro no encuentra
+  // el evento, no se suma nada y devuelve null
+  const ocupado = await Evento.findOneAndUpdate(
+    { _id: eventoId, lugaresOcupados: { $lt: sala.capacidad } },
+    { $inc: { lugaresOcupados: 1 } }
+  );
+  return ocupado !== null;
+}
+
+// Devuelve un lugar al stock (entrada cancelada o eliminada). Nunca baja de cero
+async function liberarLugar(eventoId) {
+  await mongoose.model('Evento').updateOne(
+    { _id: eventoId, lugaresOcupados: { $gt: 0 } },
+    { $inc: { lugaresOcupados: -1 } }
+  );
+}
+
+//Crea una entrada (reserva o venta directa, según el estado que le pase el controller).
+//Primero ocupa el lugar; si el evento está lleno no crea nada y devuelve null
+async function createEntrada({ eventoId, clienteId, precio, estado = 'VALIDA' }) {
+  if (ocupaLugar(estado) && !(await ocuparLugar(eventoId))) return null;
+
+  try {
+    return await Entrada.create({ eventoId, clienteId, precio, estado });
+  } catch (error) {
+    // Si la entrada no se pudo guardar (por ejemplo, un dato inválido), el lugar vuelve al stock
+    if (ocupaLugar(estado)) await liberarLugar(eventoId);
+    throw error;
+  }
+}
+
+//Actualización parcial: solo se pisan los campos que vinieron definidos.
+//Si la entrada pasa a CANCELADA, su lugar vuelve al stock. El camino inverso no existe:
+//una entrada cancelada no se reactiva (lo impiden validarConfirmacion y validarCancelacion)
 async function updateEntradaById(id, data) {
   const entrada = await getEntradaById(id);
   if (!entrada) return null;
@@ -73,15 +142,23 @@ async function updateEntradaById(id, data) {
     Object.entries(data).filter(([, valor]) => valor !== undefined)
   );
 
+  const ocupabaLugar = ocupaLugar(entrada.estado);
   entrada.set(cambios);
-  return entrada.save();
+  const guardada = await entrada.save();
+
+  if (ocupabaLugar && !ocupaLugar(guardada.estado)) await liberarLugar(guardada.eventoId);
+  return guardada;
 }
 
-//Elimina una entrada por id (borrado físico). Devuelve true si existía, false si no
+//Elimina una entrada por id (borrado físico). Devuelve true si existía, false si no.
+//Si la entrada ocupaba un lugar, lo devuelve al stock
 async function removeEntrada(id) {
   if (!mongoose.isObjectIdOrHexString(id)) return false;
   const eliminada = await Entrada.findByIdAndDelete(id);
-  return eliminada !== null;
+  if (!eliminada) return false;
+
+  if (ocupaLugar(eliminada.estado)) await liberarLugar(eliminada.eventoId);
+  return true;
 }
 
 //Lugares ocupados de un evento: vendidas y reservadas ocupan, canceladas liberan
@@ -127,6 +204,8 @@ function validarPrecio(valor) {
 
 export {
   Entrada,
+  SIN_LUGARES,
+  recalcularLugares,
   validarPrecio,
   validarConfirmacion,
   validarCancelacion,
