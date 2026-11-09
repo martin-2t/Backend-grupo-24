@@ -56,6 +56,6 @@ block content
               if !soloLectura && entrada.estado === 'RESERVADA'
                 form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/confirmar")
                   button.btn.chico(type="submit") Confirmar
-              if !soloLectura && entrada.estado !== 'CANCELADA'
+              if !soloLectura && (entrada.estado === 'VALIDA' || entrada.estado === 'RESERVADA')
                 form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/cancelar" onsubmit="return confirm('¿Cancelar esta entrada? El lugar quedará liberado.')")
                   button.btn.chico.baja(type="submit") Cancelar

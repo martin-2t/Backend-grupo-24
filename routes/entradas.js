@@ -1,7 +1,7 @@
 import express from 'express';
 import * as entradasController from '../controllers/api/entradas.js';
 import { autenticar, permitir } from '../middleware/auth.js';
-import { soloSuCentro, salaDelEventoDelBody, salaDeLaEntrada } from '../middleware/centro.js';
+import { soloSuCentro, salaDelEventoDelBody, salaDeLaEntrada, salaDeLaEntradaPorCodigo } from '../middleware/centro.js';
 import { compraComoCliente, clienteDeBoleteria, entradaPropia } from '../middleware/compras.js';
 
 const router = express.Router();
@@ -23,6 +23,16 @@ const compra = [
 ];
 router.post('/', ...compra, entradasController.crearVenta);
 router.post('/reservar', ...compra, entradasController.crearReserva);
+
+// Check-in en la puerta: solo el personal del centro donde se hace el evento. El ADMIN no:
+// validar una entrada es una tarea del lugar, no de la administración del sistema (mínimo privilegio)
+router.post(
+  '/checkin',
+  autenticar,
+  permitir('EMPLEADO', 'REPRESENTANTE'),
+  soloSuCentro(salaDeLaEntradaPorCodigo),
+  entradasController.checkin
+);
 
 router.put('/:id/confirmar', ...personal, soloSuCentro(salaDeLaEntrada), entradasController.confirmarReserva);
 router.put('/:id/cancelar', ...personal, soloSuCentro(salaDeLaEntrada), entradasController.cancelarEntrada);

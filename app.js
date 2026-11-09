@@ -25,6 +25,10 @@ import paginasRoutes from './routes/paginas.js';
 
 const app = express();
 
+// En Vercel o Render la app corre detrás de un proxy que recibe el HTTPS. Con esto, req.protocol
+// devuelve "https" y las URL que arma la app (por ejemplo, la del QR de cada entrada) son correctas
+app.set('trust proxy', 1);
+
 // motor de plantillas Pug
 app.set('view engine', 'pug');
 app.set('views', path.join(import.meta.dirname, 'views'));

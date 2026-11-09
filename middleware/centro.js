@@ -71,6 +71,14 @@ async function salaDeLaEntrada(req) {
   return evento ? [evento.salaId] : null;
 }
 
+// Check-in: el código del QR viene en la URL (panel) o en el body (API): código → entrada → evento → sala
+async function salaDeLaEntradaPorCodigo(req) {
+  const entrada = await entradasModel.getEntradaByCodigo(req.params.codigo || req.body?.codigo);
+  if (!entrada) return null;
+  const evento = await eventosModel.getEventoById(entrada.eventoId);
+  return evento ? [evento.salaId] : null;
+}
+
 export {
   soloSuCentro,
   soloSuCentroPagina,
@@ -79,4 +87,5 @@ export {
   salasDelEvento,
   salaDelEventoDelBody,
   salaDeLaEntrada,
+  salaDeLaEntradaPorCodigo,
 };

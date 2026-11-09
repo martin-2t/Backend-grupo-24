@@ -1,0 +1,12 @@
+extends ../layout
+
+block content
+  h2 Ingreso al evento
+
+  p.nota Escaneá el QR de la entrada con la cámara del celular: se abre directamente la página para validarla. Si el QR no se lee, cargá el código a mano.
+
+  form.simple(method="GET" action="/panel/checkin")
+    label(for="codigo") Código de la entrada
+    input#codigo(type="text" name="codigo" required autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Los 22 caracteres que figuran debajo del QR")
+    .barra
+      button.btn(type="submit") Buscar entrada

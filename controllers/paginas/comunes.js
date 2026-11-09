@@ -1,4 +1,5 @@
 // Helpers que comparten todas las páginas del panel.
+import QRCode from 'qrcode';
 import * as eventosModel from '../../models/eventos.js';
 import * as salasModel from '../../models/salas.js';
 import * as clientesModel from '../../models/clientes.js';
@@ -70,4 +71,16 @@ async function salasElegibles(salaIdActual) {
   return actual ? [...activas, actual] : activas;
 }
 
-export { volver, volverConError, localesComunes, enriquecerEvento, enriquecerEntrada, salasElegibles };
+// URL del check-in de una entrada. Se arma con el dominio por el que llegó la petición, así el
+// QR sirve igual en local, en la red de casa (con la IP de la compu) o en el deploy
+function urlDeIngreso(req, codigo) {
+  return req.protocol + '://' + req.get('host') + '/panel/checkin/' + encodeURIComponent(codigo);
+}
+
+// El QR como imagen en base64 (data URL), lista para un <img src="...">. Lo dibuja la librería
+// qrcode en el servidor: el navegador no necesita cargar nada extra
+async function qrDeIngreso(req, codigo) {
+  return QRCode.toDataURL(urlDeIngreso(req, codigo), { margin: 1, width: 240 });
+}
+
+export { volver, volverConError, localesComunes, enriquecerEvento, enriquecerEntrada, salasElegibles, qrDeIngreso };

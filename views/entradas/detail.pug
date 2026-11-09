@@ -11,7 +11,7 @@ block content
         if entrada.estado === 'RESERVADA'
           form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/confirmar")
             button.btn(type="submit") Confirmar reserva
-        if entrada.estado !== 'CANCELADA'
+        if entrada.estado === 'VALIDA' || entrada.estado === 'RESERVADA'
           form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/cancelar" onsubmit="return confirm('¿Cancelar esta entrada? El lugar quedará liberado.')")
             button.btn.baja(type="submit") Cancelar
 
@@ -22,7 +22,7 @@ block content
         td
           if evento
             a(href="/panel/eventos/" + evento.id)= evento.nombre
-            span  · #{new Date(evento.fecha).toLocaleString('es-AR')} · #{evento.sala}
+            span  · #{new Date(evento.fecha).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hourCycle: 'h23' })} · #{evento.sala}
           else
             span= entrada.evento
       tr
@@ -40,6 +40,23 @@ block content
         th Estado
         td
           span.badge(class=entrada.estado)= entrada.estado
+      if entrada.usadaEn
+        tr
+          th Ingreso
+          td= 'Ingresó el ' + new Date(entrada.usadaEn).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hourCycle: 'h23' }) + (validador ? ' · validada por ' + validador : '')
+
+  if qr
+    h3 Código QR de ingreso
+    .qr-ingreso
+      img(src=qr alt="Código QR de la entrada " + entrada.codigo width="240" height="240")
+      div
+        p En la puerta, el personal del centro escanea este código con el celular y valida el ingreso.
+        p
+          | Código:
+          code.codigo= entrada.codigo
+        //- Abre la misma URL que el QR, con los mismos permisos: solo ahorra el paso del celular
+        if puedeValidar && entrada.estado === 'VALIDA'
+          a.btn.secundario(href="/panel/checkin/" + entrada.codigo) Simular lectura del QR
 
   if !soloLectura
     h3 Corregir precio

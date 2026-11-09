@@ -34,5 +34,14 @@
     "salaId": "5a1a00000000000000000004",
     "precio": 15000,
     "estado": "PROGRAMADO"
+  },
+  {
+    "_id": "5a1e00000000000000000005",
+    "nombre": "Noche de Cumbia en La Usina",
+    "descripcion": "Evento de demostración: la semilla le pone la fecha de hoy para probar el check-in con QR",
+    "fechaRelativa": { "dias": 0, "hora": "21:00" },
+    "salaId": "5a1a00000000000000000002",
+    "precio": 9000,
+    "estado": "PROGRAMADO"
   }
 ]

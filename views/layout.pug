@@ -20,6 +20,8 @@ html(lang="es")
           a(href="/panel/consultas") Consultas
         if usuario && ['ADMIN', 'REPRESENTANTE', 'AUDITOR'].includes(usuario.rol)
           a(href="/panel/usuarios") Usuarios
+        if usuario && ['EMPLEADO', 'REPRESENTANTE'].includes(usuario.rol)
+          a(href="/panel/checkin") Ingreso
         if usuario
           span #{usuario.nombre} (#{usuario.rol})
           form(method="POST" action="/panel/logout" style="display:inline")
