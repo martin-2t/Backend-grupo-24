@@ -40,6 +40,10 @@ block content
         th Estado
         td
           span.badge(class=entrada.estado)= entrada.estado
+      if entrada.estado === 'RESERVADA' && entrada.venceEn
+        tr
+          th Vencimiento
+          td= 'Si no se confirma el pago, la reserva vence a las ' + new Date(entrada.venceEn).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) + ' y libera el lugar.'
       if entrada.usadaEn
         tr
           th Ingreso

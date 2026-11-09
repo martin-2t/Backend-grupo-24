@@ -25,14 +25,19 @@ const entradaSchema = new mongoose.Schema(
       required: [true, 'El precio es obligatorio.'],
       min: [0, 'El precio no puede ser negativo.'],
     },
-    // USADA: la entrada ya se validó en el ingreso al evento
+    // USADA: la entrada ya se validó en el ingreso al evento.
+    // VENCIDA: era una reserva y no se confirmó el pago a tiempo
     estado: {
       type: String,
       enum: {
-        values: ['VALIDA', 'RESERVADA', 'CANCELADA', 'USADA'],
-        message: 'El estado debe ser VALIDA, RESERVADA, CANCELADA o USADA.',
+        values: ['VALIDA', 'RESERVADA', 'CANCELADA', 'USADA', 'VENCIDA'],
+        message: 'El estado debe ser VALIDA, RESERVADA, CANCELADA, USADA o VENCIDA.',
       },
       default: 'VALIDA',
+    },
+    // Hasta cuándo se retiene el lugar de una reserva sin pagar (solo las RESERVADA lo tienen)
+    venceEn: {
+      type: Date,
     },
     // Código único y aleatorio que va dentro del QR. No se usa el _id porque los ObjectId son
     // en parte predecibles (llevan la fecha y un contador): alguien podría adivinar otro
@@ -55,8 +60,38 @@ const entradaSchema = new mongoose.Schema(
 const Entrada = mongoose.model('Entrada', entradaSchema);
 
 
+// ---- Reservas con vencimiento ----
+// Una reserva retiene su lugar RESERVA_MINUTOS (10 por defecto) mientras se completa el pago.
+// No hay un proceso que revise el reloj (en Vercel no queda ningún servidor corriendo): las
+// reservas atrasadas se vencen "al consultar", antes de cada lectura de entradas.
+
+// La variable se lee dentro de la función: con ES Modules, los import corren antes que dotenv
+function minutosDeReserva() {
+  return Number(process.env.RESERVA_MINUTOS) || 10;
+}
+
+// Pasa a VENCIDA las reservas atrasadas que cumplan el filtro y devuelve sus lugares al stock.
+// Cada una se vence con una operación atómica que exige que siga RESERVADA: si dos pedidos
+// intentan vencer la misma reserva a la vez, gana uno solo y el lugar se libera una sola vez.
+// Las reservas sin venceEn (cargadas antes de esta regla, o por la semilla) no vencen
+async function vencerReservas(filtro = {}) {
+  const ahora = new Date();
+  const atrasadas = await Entrada.find(
+    { ...filtro, estado: 'RESERVADA', venceEn: { $lt: ahora } },
+    { _id: 1, eventoId: 1 }
+  );
+  for (const reserva of atrasadas) {
+    const vencida = await Entrada.findOneAndUpdate(
+      { _id: reserva._id, estado: 'RESERVADA' },
+      { $set: { estado: 'VENCIDA' } }
+    );
+    if (vencida) await liberarLugar(reserva.eventoId);
+  }
+}
+
 // Devuelve todas las entradas
 async function getAllEntradas() {
+  await vencerReservas();
   return Entrada.find();
 }
 
@@ -64,12 +99,14 @@ async function getAllEntradas() {
 //no puede existir: devolvemos null (como "no encontrada") en vez de un CastError
 async function getEntradaById(id) {
   if (!mongoose.isObjectIdOrHexString(id)) return null;
+  await vencerReservas({ _id: id });
   return Entrada.findById(id);
 }
 
 //Entradas de un evento en particular (todas, sin filtrar por estado)
 async function getEntradasByEvento(eventoId) {
   if (!mongoose.isObjectIdOrHexString(eventoId)) return [];
+  await vencerReservas({ eventoId });
   return Entrada.find({ eventoId });
 }
 
@@ -108,8 +145,10 @@ async function inicializarContador(eventoId) {
   );
 }
 
-// Intenta ocupar un lugar del evento. Devuelve true si lo consiguió, false si está lleno
+// Intenta ocupar un lugar del evento. Devuelve true si lo consiguió, false si está lleno.
+// Antes vence las reservas atrasadas del evento, así sus lugares vuelven a estar disponibles
 async function ocuparLugar(eventoId) {
+  await vencerReservas({ eventoId });
   const Evento = mongoose.model('Evento');
   const evento = await Evento.findById(eventoId);
   if (!evento) return false;
@@ -140,8 +179,11 @@ async function liberarLugar(eventoId) {
 async function createEntrada({ eventoId, clienteId, precio, estado = 'VALIDA' }) {
   if (ocupaLugar(estado) && !(await ocuparLugar(eventoId))) return null;
 
+  // Una reserva retiene el lugar solo unos minutos: después vence sola
+  const venceEn = estado === 'RESERVADA' ? new Date(Date.now() + minutosDeReserva() * 60000) : undefined;
+
   try {
-    return await Entrada.create({ eventoId, clienteId, precio, estado, codigo: generarCodigo() });
+    return await Entrada.create({ eventoId, clienteId, precio, estado, venceEn, codigo: generarCodigo() });
   } catch (error) {
     // Si la entrada no se pudo guardar (por ejemplo, un dato inválido), el lugar vuelve al stock
     if (ocupaLugar(estado)) await liberarLugar(eventoId);
@@ -153,18 +195,33 @@ async function createEntrada({ eventoId, clienteId, precio, estado = 'VALIDA' })
 //Si la entrada pasa a CANCELADA, su lugar vuelve al stock. El camino inverso no existe:
 //una entrada cancelada no se reactiva (lo impiden validarConfirmacion y validarCancelacion)
 async function updateEntradaById(id, data) {
-  const entrada = await getEntradaById(id);
+  const entrada = await getEntradaById(id); // si era una reserva atrasada, ya vuelve VENCIDA
   if (!entrada) return null;
 
   const cambios = Object.fromEntries(
     Object.entries(data).filter(([, valor]) => valor !== undefined)
   );
 
-  const ocupabaLugar = ocupaLugar(entrada.estado);
+  const estadoLeido = entrada.estado;
   entrada.set(cambios);
-  const guardada = await entrada.save();
+  // Al salir de RESERVADA (confirmada o cancelada), el vencimiento ya no aplica
+  if (entrada.estado !== 'RESERVADA') entrada.venceEn = undefined;
+  await entrada.validate();
 
-  if (ocupabaLugar && !ocupaLugar(guardada.estado)) await liberarLugar(guardada.eventoId);
+  const actualizacion = entrada.$getChanges(); // solo los campos que cambiaron ($set y $unset)
+  if (!Object.keys(actualizacion).length) return entrada;
+
+  // Se guarda con la condición de que el estado siga siendo el que se leyó. Si en el medio
+  // otro pedido la venció o la canceló, no se pisa ese cambio: así una reserva que venció
+  // no "revive" al confirmarla, y su lugar no se libera dos veces
+  const guardada = await Entrada.findOneAndUpdate(
+    { _id: entrada._id, estado: estadoLeido },
+    actualizacion,
+    { returnDocument: 'after' }
+  );
+  if (!guardada) return Entrada.findById(entrada._id);
+
+  if (ocupaLugar(estadoLeido) && !ocupaLugar(guardada.estado)) await liberarLugar(guardada.eventoId);
   return guardada;
 }
 
@@ -179,9 +236,10 @@ async function removeEntrada(id) {
   return true;
 }
 
-//Lugares ocupados de un evento: vendidas, reservadas y usadas ocupan, canceladas liberan
+//Lugares ocupados de un evento: vendidas, reservadas y usadas ocupan; canceladas y vencidas liberan
 async function lugaresOcupados(eventoId) {
   if (!mongoose.isObjectIdOrHexString(eventoId)) return 0;
+  await vencerReservas({ eventoId });
   return Entrada.countDocuments({
     eventoId,
     estado: { $in: OCUPAN_LUGAR },
@@ -197,6 +255,7 @@ function generarCodigo() {
 
 async function getEntradaByCodigo(codigo) {
   if (!codigo || typeof codigo !== 'string') return null;
+  await vencerReservas({ codigo });
   return Entrada.findOne({ codigo });
 }
 
@@ -230,6 +289,7 @@ function validarIngreso(entrada, evento, ahora = new Date()) {
     return 'Esta entrada ya ingresó el ' + fechaYHora(entrada.usadaEn) + '.';
   }
   if (entrada.estado === 'CANCELADA') return 'La entrada está cancelada.';
+  if (entrada.estado === 'VENCIDA') return 'Era una reserva y venció sin que se confirmara el pago.';
   if (entrada.estado === 'RESERVADA') return 'Es una reserva sin confirmar: todavía no está pagada.';
   if (!evento || evento.estado !== 'PROGRAMADO') return 'El evento ya finalizó o fue cancelado.';
   if (diaLocal(evento.fecha) !== diaLocal(ahora)) {
@@ -279,6 +339,9 @@ async function ingresar(codigo, usuarioId) {
 
 //Transiciones válidas de una entrada. Devuelven el motivo del rechazo, o null.
 function validarConfirmacion(entrada) {
+  if (entrada.estado === 'VENCIDA') {
+    return 'La reserva venció: pasaron más de ' + minutosDeReserva() + ' minutos sin confirmar el pago.';
+  }
   if (entrada.estado !== 'RESERVADA') return 'Solo se pueden confirmar entradas en estado RESERVADA.';
   return null;
 }
@@ -286,6 +349,7 @@ function validarConfirmacion(entrada) {
 function validarCancelacion(entrada) {
   if (entrada.estado === 'CANCELADA') return 'La entrada ya estaba cancelada.';
   if (entrada.estado === 'USADA') return 'La entrada ya se usó para ingresar: no se puede cancelar.';
+  if (entrada.estado === 'VENCIDA') return 'La reserva ya venció y su lugar se liberó: no hay nada que cancelar.';
   return null;
 }
 
@@ -298,7 +362,8 @@ async function contarPorEstado(lista) {
     usadas: entradas.filter((e) => e.estado === 'USADA').length,
     reservadas: entradas.filter((e) => e.estado === 'RESERVADA').length,
     canceladas: entradas.filter((e) => e.estado === 'CANCELADA').length,
-    vigentes: entradas.filter((e) => e.estado !== 'CANCELADA').length,
+    vencidas: entradas.filter((e) => e.estado === 'VENCIDA').length,
+    vigentes: entradas.filter((e) => !['CANCELADA', 'VENCIDA'].includes(e.estado)).length,
   };
 }
 
@@ -316,6 +381,7 @@ export {
   Entrada,
   SIN_LUGARES,
   recalcularLugares,
+  minutosDeReserva,
   getEntradaByCodigo,
   asegurarCodigo,
   validarIngreso,

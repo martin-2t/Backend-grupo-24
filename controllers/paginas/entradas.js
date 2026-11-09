@@ -25,7 +25,7 @@ async function listar(req, res, next) {
       filtros,
       eventos: await eventosModel.getAllEventos(),
       clientes: await clientesModel.getAll(),
-      estados: ['VALIDA', 'RESERVADA', 'USADA', 'CANCELADA'],
+      estados: ['VALIDA', 'RESERVADA', 'USADA', 'VENCIDA', 'CANCELADA'],
     });
   } catch (error) {
     next(error);
@@ -103,8 +103,8 @@ async function detalle(req, res, next) {
       entrada: await enriquecerEntrada(entrada),
       evento: evento ? await enriquecerEvento(evento) : null,
       cliente: await clientesModel.getById(entrada.clienteId),
-      // Una entrada cancelada ya no tiene QR para mostrar
-      qr: entrada.estado === 'CANCELADA' ? null : await qrDeIngreso(req, entrada.codigo),
+      // Una entrada cancelada o una reserva vencida ya no tienen un QR que sirva
+      qr: ['CANCELADA', 'VENCIDA'].includes(entrada.estado) ? null : await qrDeIngreso(req, entrada.codigo),
       validador: validador ? validador.nombre : null,
       // El botón "Simular lectura" es para quien valida en la puerta: el personal del centro
       puedeValidar: ['EMPLEADO', 'REPRESENTANTE'].includes(req.usuario.rol),
@@ -124,7 +124,11 @@ async function confirmar(req, res, next) {
       return volverConError(res, '/panel/entradas/' + entrada.id, impedimento);
     }
 
-    await entradasModel.updateEntradaById(entrada.id, { estado: 'VALIDA' });
+    const confirmada = await entradasModel.updateEntradaById(entrada.id, { estado: 'VALIDA' });
+    // Si en el medio la reserva venció, el model no la confirma: se informa el motivo
+    if (confirmada.estado !== 'VALIDA') {
+      return volverConError(res, '/panel/entradas/' + entrada.id, entradasModel.validarConfirmacion(confirmada));
+    }
     volver(res, '/panel/entradas/' + entrada.id, 'Reserva confirmada: la entrada quedó vendida.');
   } catch (error) {
     next(error);
@@ -141,7 +145,11 @@ async function cancelar(req, res, next) {
       return volverConError(res, '/panel/entradas/' + entrada.id, impedimento);
     }
 
-    await entradasModel.updateEntradaById(entrada.id, { estado: 'CANCELADA' });
+    const cancelada = await entradasModel.updateEntradaById(entrada.id, { estado: 'CANCELADA' });
+    // Si en el medio la reserva venció, su lugar ya se liberó: se informa el estado real
+    if (cancelada.estado !== 'CANCELADA') {
+      return volverConError(res, '/panel/entradas/' + entrada.id, entradasModel.validarCancelacion(cancelada));
+    }
     volver(res, '/panel/entradas/' + entrada.id, 'Entrada cancelada: el lugar quedó liberado.');
   } catch (error) {
     next(error);
