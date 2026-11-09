@@ -79,6 +79,8 @@ async function crear(req, res, next) {
       precio: chequeo.evento.precio,
       estado: reservar ? 'RESERVADA' : 'VALIDA',
     });
+    // null: otra compra simultánea ocupó el último lugar entre el chequeo y la creación
+    if (!nueva) return fallar(entradasModel.SIN_LUGARES);
 
     volver(res, '/panel/entradas/' + nueva.id, reservar ? 'Reserva registrada.' : 'Venta registrada.');
   } catch (error) {

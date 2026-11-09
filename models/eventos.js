@@ -44,6 +44,13 @@ const eventoSchema = new mongoose.Schema(
       },
       default: 'PROGRAMADO',
     },
+    // Contador de lugares ocupados (entradas vendidas o reservadas). Es el "stock único" del
+    // evento: solo lo modifica models/entradas.js, con operaciones atómicas de MongoDB
+    lugaresOcupados: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   { versionKey: false }
 );
@@ -223,8 +230,10 @@ async function validarVenta(eventoId, clienteId) {
     return { error: 'La sala "' + sala.nombre + '" está dada de baja: no se pueden vender entradas.' };
   }
 
+  // Chequeo previo, para responder rápido cuando el evento ya está lleno. La garantía real
+  // contra la sobreventa la da entradasModel.createEntrada, que ocupa el lugar de forma atómica
   if ((await entradasModel.lugaresOcupados(evento.id)) >= sala.capacidad) {
-    return { error: 'No quedan lugares disponibles para este evento.' };
+    return { error: entradasModel.SIN_LUGARES };
   }
 
   return { evento, sala };
