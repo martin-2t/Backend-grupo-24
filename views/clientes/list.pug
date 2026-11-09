@@ -3,8 +3,9 @@ extends ../layout
 block content
   h2 Clientes
 
-  .barra
-    a.btn(href="/panel/clientes/nuevo") + Nuevo cliente
+  if !soloLectura
+    .barra
+      a.btn(href="/panel/clientes/nuevo") + Nuevo cliente
 
   table
     thead
@@ -28,7 +29,8 @@ block content
           td= cliente.email
           td= cliente.telefono
           td.acciones
-            .grupo
-              a.btn.chico.editar(href="/panel/clientes/" + cliente.id + "/editar") Editar
-              form.enlinea(method="POST" action="/panel/clientes/" + cliente.id + "/eliminar" onsubmit="return confirm('¿Eliminar este cliente?')")
-                button.btn.chico.peligro(type="submit") Eliminar
+            if !soloLectura
+              .grupo
+                a.btn.chico.editar(href="/panel/clientes/" + cliente.id + "/editar") Editar
+                form.enlinea(method="POST" action="/panel/clientes/" + cliente.id + "/eliminar" onsubmit="return confirm('¿Eliminar este cliente?')")
+                  button.btn.chico.peligro(type="submit") Eliminar

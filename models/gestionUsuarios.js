@@ -1,11 +1,12 @@
 // Quién puede gestionar a quién. Las usan el panel y cualquier otro punto de entrada, para que
 // las reglas sean siempre las mismas:
-//  - ADMIN: gestiona a todos y puede crear ADMIN, REPRESENTANTE y EMPLEADO.
+//  - ADMIN: gestiona a todos y puede crear ADMIN, REPRESENTANTE, EMPLEADO y AUDITOR.
 //  - REPRESENTANTE: solo gestiona EMPLEADOS de su propio centro, y solo puede crear EMPLEADOS.
+//  - AUDITOR: ve a todos los usuarios, pero no crea ni gestiona a nadie.
 import * as usuariosModel from './usuarios.js';
 
 const ROLES_CREABLES = {
-  ADMIN: ['EMPLEADO', 'REPRESENTANTE', 'ADMIN'],
+  ADMIN: ['EMPLEADO', 'REPRESENTANTE', 'ADMIN', 'AUDITOR'],
   REPRESENTANTE: ['EMPLEADO'],
 };
 
@@ -24,7 +25,7 @@ function puedeGestionar(actor, objetivo) {
 
 // Los usuarios que "actor" puede ver en su lista
 async function usuariosVisibles(actor) {
-  if (actor.rol === 'ADMIN') return usuariosModel.getAll();
+  if (actor.rol === 'ADMIN' || actor.rol === 'AUDITOR') return usuariosModel.getAll();
   return usuariosModel.Usuario.find({ rol: 'EMPLEADO', salaId: actor.salaId });
 }
 

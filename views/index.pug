@@ -3,6 +3,8 @@ extends layout
 block content
   - const esPersonal = usuario && usuario.rol !== 'CLIENTE'
   - const esGerencia = usuario && (usuario.rol === 'ADMIN' || usuario.rol === 'REPRESENTANTE')
+  //- soloLectura (AUDITOR) lo define el middleware marcarSoloLectura: ve los números, no opera
+  - const puedeVender = esPersonal && !soloLectura
   h2 Panel general
 
   .cards
@@ -25,7 +27,8 @@ block content
 
   if esPersonal
     .barra
-      a.btn(href="/panel/entradas/nueva") Vender entrada
+      if puedeVender
+        a.btn(href="/panel/entradas/nueva") Vender entrada
       if esGerencia
         a.btn(href="/panel/eventos/nuevo") + Nuevo evento
       a.btn.secundario(href="/panel/consultas") Ver consultas
@@ -40,7 +43,7 @@ block content
           th Evento
           th Fecha
           th Precio
-          if esPersonal
+          if puedeVender
             th
       tbody
         each evento in proximos
@@ -49,6 +52,6 @@ block content
               a(href="/panel/eventos/" + evento.id)= evento.nombre
             td= new Date(evento.fecha).toLocaleString('es-AR')
             td= '$' + evento.precio
-            if esPersonal
+            if puedeVender
               td.acciones
                 a.btn.chico(href="/panel/entradas/nueva?evento=" + evento.id) Vender

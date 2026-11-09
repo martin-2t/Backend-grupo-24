@@ -3,8 +3,9 @@ extends ../layout
 block content
   h2 Usuarios
 
-  .barra
-    a.btn(href="/panel/usuarios/nuevo") + Nuevo usuario
+  if !soloLectura
+    .barra
+      a.btn(href="/panel/usuarios/nuevo") + Nuevo usuario
 
   table
     thead
@@ -34,7 +35,9 @@ block content
             if bloqueado
               span.badge  Bloqueado
           td.acciones
-            if u.id !== usuario.id
+            if soloLectura
+              span.vacio Solo lectura
+            else if u.id !== usuario.id
               .grupo
                 form.enlinea(method="POST" action="/panel/usuarios/" + u.id + "/estado" onsubmit="return confirm('¿Cambiar el estado de este usuario?')")
                   button.btn.chico(type="submit" class=(u.estado === 'ACTIVO' ? 'peligro' : 'editar'))= u.estado === 'ACTIVO' ? 'Suspender' : 'Activar'
