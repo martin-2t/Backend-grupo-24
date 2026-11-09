@@ -109,7 +109,7 @@ async function entradasDelCliente(id) {
 // El borrado de cliente es físico: una entrada sin titular quedaría huérfana
 async function tieneEntradasVigentes(id) {
   const entradas = await entradasDelCliente(id);
-  return entradas.some((e) => e.estado !== 'CANCELADA');
+  return entradas.some((e) => !['CANCELADA', 'VENCIDA'].includes(e.estado));
 }
 
 export {

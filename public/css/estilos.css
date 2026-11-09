@@ -444,6 +444,7 @@ td a.btn.baja { color: #454b4b; }
 /* Check-in con QR                                                     */
 /* ------------------------------------------------------------------ */
 .badge.USADA { background: #5b6b73; }
+.badge.VENCIDA { background: #8a6d3b; }
 
 .qr-ingreso { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; margin-bottom: 18px; }
 .qr-ingreso img { background: #fff; padding: 8px; border: 1px solid #d7dcdc; border-radius: 8px; }

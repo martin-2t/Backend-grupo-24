@@ -107,7 +107,8 @@ async function finalizarEvento(id) {
 // de confirmación como la cancelación misma, para que digan siempre lo mismo.
 async function entradasQueSeCancelan(id) {
   const entradas = await entradasModel.getEntradasByEvento(id);
-  return entradas.filter((e) => e.estado !== 'CANCELADA');
+  // Las canceladas y las reservas vencidas ya no ocupan lugar: no hay nada que arrastrar
+  return entradas.filter((e) => !['CANCELADA', 'VENCIDA'].includes(e.estado));
 }
 
 // DELETE lógico | Cancela el evento y arrastra sus entradas: no puede quedar una

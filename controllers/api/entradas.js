@@ -100,7 +100,12 @@ async function confirmarReserva(req, res, next) {
       return res.status(400).json({ error });
     }
 
-    return res.status(200).json(await entradasModel.updateEntradaById(req.params.id, { estado: 'VALIDA' }));
+    const confirmada = await entradasModel.updateEntradaById(req.params.id, { estado: 'VALIDA' });
+    //Si en el medio la reserva venció, el model no la confirma: se informa el motivo
+    if (confirmada.estado !== 'VALIDA') {
+      return res.status(409).json({ error: entradasModel.validarConfirmacion(confirmada) });
+    }
+    return res.status(200).json(confirmada);
   } catch (error) {
     next(error);
   }
@@ -119,7 +124,12 @@ async function cancelarEntrada(req, res, next) {
       return res.status(400).json({ error });
     }
 
-    return res.status(200).json(await entradasModel.updateEntradaById(req.params.id, { estado: 'CANCELADA' }));
+    const cancelada = await entradasModel.updateEntradaById(req.params.id, { estado: 'CANCELADA' });
+    //Si en el medio la reserva venció, su lugar ya se liberó: se informa el estado real
+    if (cancelada.estado !== 'CANCELADA') {
+      return res.status(409).json({ error: entradasModel.validarCancelacion(cancelada) });
+    }
+    return res.status(200).json(cancelada);
   } catch (error) {
     next(error);
   }
