@@ -7,8 +7,10 @@ import { compraComoCliente, clienteDeBoleteria, entradaPropia } from '../middlew
 const router = express.Router();
 
 const personal = [autenticar, permitir('ADMIN', 'EMPLEADO')];
+// Consulta: el personal y el AUDITOR (que ve todo, pero no modifica nada)
+const lectura = [autenticar, permitir('ADMIN', 'EMPLEADO', 'AUDITOR')];
 
-router.get('/', ...personal, entradasController.getAllEntradas);
+router.get('/', ...lectura, entradasController.getAllEntradas);
 router.get('/:id', autenticar, entradaPropia, soloSuCentro(salaDeLaEntrada), entradasController.getEntradaById);
 
 // Compra: el CLIENTE compra para sí (web); el EMPLEADO vende en su centro (boletería)

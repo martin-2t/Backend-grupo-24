@@ -4,10 +4,10 @@ import { autenticar, permitir } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Ventas: información interna del negocio, solo para el personal
-const personal = [autenticar, permitir('ADMIN', 'EMPLEADO')];
-router.get('/entradas-vendidas/:eventoId', ...personal, consultasController.entradasVendidas);
-router.get('/entradas-vendidas', ...personal, consultasController.entradasVendidas);
+// Ventas: información interna del negocio, solo para el personal y el AUDITOR
+const lectura = [autenticar, permitir('ADMIN', 'EMPLEADO', 'AUDITOR')];
+router.get('/entradas-vendidas/:eventoId', ...lectura, consultasController.entradasVendidas);
+router.get('/entradas-vendidas', ...lectura, consultasController.entradasVendidas);
 
 // Disponibilidad y cartelera: públicas
 router.get('/entradas-disponibles/:eventoId', consultasController.entradasDisponibles);

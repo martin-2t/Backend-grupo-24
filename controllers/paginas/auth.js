@@ -26,6 +26,11 @@ const PERMISOS = {
     'Ver la cartelera de eventos de los 25 centros.',
     'Comprar entradas para sí mismo y consultar las propias.',
   ],
+  AUDITOR: [
+    'Consultar las salas, eventos, entradas, clientes y usuarios de toda la red.',
+    'Ver las consultas de ventas.',
+    'Todo en modo de solo lectura: no puede crear, modificar ni eliminar nada.',
+  ],
 };
 function loginForm(req, res) {
   res.render('auth/login', { titulo: 'Ingresar', error: null, email: '' });

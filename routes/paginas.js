@@ -4,7 +4,7 @@
 // centro, que la sala sea la suya (soloSuCentroPagina).
 import express from 'express';
 
-import { cargarUsuario, requerirLogin, permitirPagina } from '../middleware/auth.js';
+import { cargarUsuario, requerirLogin, permitirPagina, marcarSoloLectura } from '../middleware/auth.js';
 import {
   soloSuCentroPagina,
   salaDelParametro,
@@ -31,6 +31,8 @@ const personal = permitirPagina('ADMIN', 'EMPLEADO');
 // Gerencia: ADMIN y REPRESENTANTE publican eventos y editan su sala. El cajero (EMPLEADO) no.
 const gerencia = permitirPagina('ADMIN', 'REPRESENTANTE');
 const soloAdmin = permitirPagina('ADMIN');
+// Consulta: el personal y el AUDITOR, que ve la información interna pero no modifica nada
+const lectura = permitirPagina('ADMIN', 'EMPLEADO', 'AUDITOR');
 
 router.use(comunes.localesComunes);
 // Identifica al usuario (si hay token válido) para que las vistas muestren su nombre
@@ -45,12 +47,14 @@ router.post('/registro', auth.registro);
 
 // Todo lo que sigue exige haber iniciado sesión
 router.use(requerirLogin);
+// Las vistas ocultan los botones de acción a los roles de solo lectura
+router.use(marcarSoloLectura);
 
 // Inicio: lo ven todos los roles
 router.get('/', inicio.mostrar);
 
-// Consultas de ventas: solo el personal
-router.get('/consultas', personal, consultas.mostrar);
+// Consultas de ventas: el personal y el AUDITOR
+router.get('/consultas', lectura, consultas.mostrar);
 
 // Eventos. Ver: todos. Gestionar: ADMIN, o el REPRESENTANTE de la sala del evento.
 // Las rutas literales van antes que las de :id para que no las capture
@@ -73,33 +77,36 @@ router.post('/salas/:id/editar', gerencia, soloSuCentroPagina(salaDelParametro),
 router.post('/salas/:id/estado', soloAdmin, salas.cambiarEstado);
 
 // Usuarios: ADMIN gestiona a todos; el REPRESENTANTE, solo a los empleados de su centro.
+// El AUDITOR ve la lista completa, sin acciones.
 // La regla de a quién puede gestionar la aplica cada controlador (models/gestionUsuarios.js)
-router.use('/usuarios', permitirPagina('ADMIN', 'REPRESENTANTE'));
-router.get('/usuarios', usuarios.listar);
-router.get('/usuarios/nuevo', usuarios.nuevoForm);
-router.post('/usuarios/nuevo', usuarios.crear);
-router.post('/usuarios/:id/estado', usuarios.cambiarEstado);
-router.post('/usuarios/:id/desbloquear', usuarios.desbloquear);
+const gestionUsuarios = permitirPagina('ADMIN', 'REPRESENTANTE');
+router.get('/usuarios', permitirPagina('ADMIN', 'REPRESENTANTE', 'AUDITOR'), usuarios.listar);
+router.get('/usuarios/nuevo', gestionUsuarios, usuarios.nuevoForm);
+router.post('/usuarios/nuevo', gestionUsuarios, usuarios.crear);
+router.post('/usuarios/:id/estado', gestionUsuarios, usuarios.cambiarEstado);
+router.post('/usuarios/:id/desbloquear', gestionUsuarios, usuarios.desbloquear);
 
-// Clientes: datos personales, solo el personal. Eliminar: solo ADMIN
-router.use('/clientes', personal);
+// Clientes: datos personales. Consultar: el personal y el AUDITOR. Cargar y editar: el
+// personal. Eliminar: solo ADMIN. Las rutas literales van antes que las de :id
+router.use('/clientes', lectura);
 router.get('/clientes', clientes.listar);
-router.get('/clientes/nuevo', clientes.nuevoForm);
-router.post('/clientes/nuevo', clientes.crear);
+router.get('/clientes/nuevo', personal, clientes.nuevoForm);
+router.post('/clientes/nuevo', personal, clientes.crear);
 router.get('/clientes/:id', clientes.detalle);
-router.get('/clientes/:id/editar', clientes.editarForm);
-router.post('/clientes/:id/editar', clientes.actualizar);
+router.get('/clientes/:id/editar', personal, clientes.editarForm);
+router.post('/clientes/:id/editar', personal, clientes.actualizar);
 router.post('/clientes/:id/eliminar', soloAdmin, clientes.eliminar);
 
-// Entradas: solo el personal; el cajero y el REPRESENTANTE solo sobre las de su sala. Eliminar: solo ADMIN
-router.use('/entradas', personal);
+// Entradas: el personal opera; el cajero y el REPRESENTANTE solo sobre las de su sala.
+// El AUDITOR consulta todas, sin operar. Eliminar: solo ADMIN
+router.use('/entradas', lectura);
 router.get('/entradas', entradas.listar);
-router.get('/entradas/nueva', entradas.nuevoForm);
-router.post('/entradas/nueva', soloSuCentroPagina(salaDelEventoDelBody), entradas.crear);
+router.get('/entradas/nueva', personal, entradas.nuevoForm);
+router.post('/entradas/nueva', personal, soloSuCentroPagina(salaDelEventoDelBody), entradas.crear);
 router.get('/entradas/:id', soloSuCentroPagina(salaDeLaEntrada), entradas.detalle);
-router.post('/entradas/:id/confirmar', soloSuCentroPagina(salaDeLaEntrada), entradas.confirmar);
-router.post('/entradas/:id/cancelar', soloSuCentroPagina(salaDeLaEntrada), entradas.cancelar);
-router.post('/entradas/:id/precio', soloSuCentroPagina(salaDeLaEntrada), entradas.actualizarPrecio);
+router.post('/entradas/:id/confirmar', personal, soloSuCentroPagina(salaDeLaEntrada), entradas.confirmar);
+router.post('/entradas/:id/cancelar', personal, soloSuCentroPagina(salaDeLaEntrada), entradas.cancelar);
+router.post('/entradas/:id/precio', personal, soloSuCentroPagina(salaDeLaEntrada), entradas.actualizarPrecio);
 router.post('/entradas/:id/eliminar', soloAdmin, entradas.eliminar);
 
 export default router;

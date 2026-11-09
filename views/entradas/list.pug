@@ -3,8 +3,9 @@ extends ../layout
 block content
   h2 Entradas
 
-  .barra
-    a.btn(href="/panel/entradas/nueva") Vender entrada
+  if !soloLectura
+    .barra
+      a.btn(href="/panel/entradas/nueva") Vender entrada
 
   form.filtros(method="GET" action="/panel/entradas")
     label(for="evento") Evento
@@ -52,9 +53,9 @@ block content
           td.acciones
             .grupo
               a.btn.chico.secundario(href="/panel/entradas/" + entrada.id) Ver
-              if entrada.estado === 'RESERVADA'
+              if !soloLectura && entrada.estado === 'RESERVADA'
                 form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/confirmar")
                   button.btn.chico(type="submit") Confirmar
-              if entrada.estado !== 'CANCELADA'
+              if !soloLectura && entrada.estado !== 'CANCELADA'
                 form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/cancelar" onsubmit="return confirm('¿Cancelar esta entrada? El lugar quedará liberado.')")
                   button.btn.chico.baja(type="submit") Cancelar

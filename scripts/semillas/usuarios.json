@@ -6,5 +6,6 @@
   { "_id": "05e000000000000000000005", "nombre": "Juan Pérez", "email": "juanperez@mail.com", "password": "cliente1234", "rol": "CLIENTE", "clienteId": "5a1c00000000000000000001" },
   { "_id": "05e000000000000000000006", "nombre": "Tomas Aguirre", "email": "tomasaguirre@mail.com", "password": "cliente1234", "rol": "CLIENTE", "clienteId": "5a1c00000000000000000002" },
   { "_id": "05e000000000000000000007", "nombre": "Marcos Díaz", "email": "representante.flores@urbanacult.com", "password": "representante1234", "rol": "REPRESENTANTE", "salaId": "5a1a00000000000000000001" },
-  { "_id": "05e000000000000000000008", "nombre": "Valeria Gómez", "email": "representante.usina@urbanacult.com", "password": "representante1234", "rol": "REPRESENTANTE", "salaId": "5a1a00000000000000000002" }
+  { "_id": "05e000000000000000000008", "nombre": "Valeria Gómez", "email": "representante.usina@urbanacult.com", "password": "representante1234", "rol": "REPRESENTANTE", "salaId": "5a1a00000000000000000002" },
+  { "_id": "05e000000000000000000009", "nombre": "Laura Benítez", "email": "auditoria@urbanacult.com", "password": "auditor1234", "rol": "AUDITOR" }
 ]

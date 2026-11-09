@@ -18,7 +18,7 @@ html(lang="es")
           a(href="/panel/clientes") Clientes
           a(href="/panel/entradas") Entradas
           a(href="/panel/consultas") Consultas
-        if usuario && (usuario.rol === 'ADMIN' || usuario.rol === 'REPRESENTANTE')
+        if usuario && ['ADMIN', 'REPRESENTANTE', 'AUDITOR'].includes(usuario.rol)
           a(href="/panel/usuarios") Usuarios
         if usuario
           span #{usuario.nombre} (#{usuario.rol})

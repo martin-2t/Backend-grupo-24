@@ -98,4 +98,11 @@ function permitirPagina(...roles) {
   };
 }
 
-export { autenticar, cargarUsuario, requerirLogin, permitir, permitirPagina };
+// Panel: avisa a las vistas si el usuario es de solo lectura (AUDITOR), para que no muestren
+// botones de acciones que el servidor igual va a rechazar. Va después de requerirLogin
+function marcarSoloLectura(req, res, next) {
+  res.locals.soloLectura = usuariosModel.ROLES_SOLO_LECTURA.includes(req.usuario.rol);
+  next();
+}
+
+export { autenticar, cargarUsuario, requerirLogin, permitir, permitirPagina, marcarSoloLectura };

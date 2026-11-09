@@ -4,9 +4,12 @@ import { EMAIL } from './formatos.js';
 import * as salasModel from './salas.js';
 import * as clientesModel from './clientes.js';
 
-const ROLES = ['ADMIN', 'REPRESENTANTE', 'EMPLEADO', 'CLIENTE'];
+const ROLES = ['ADMIN', 'REPRESENTANTE', 'EMPLEADO', 'CLIENTE', 'AUDITOR'];
 // Los roles que trabajan en un centro: necesitan una sala asignada (salaId)
 const ROLES_DE_CENTRO = ['REPRESENTANTE', 'EMPLEADO'];
+// Consulta y auditoría (requerimiento RF-PLA-08 de Ingeniería de Software): ve la
+// información interna de toda la red, pero no puede modificar nada
+const ROLES_SOLO_LECTURA = ['AUDITOR'];
 const PASSWORD_MINIMO = 8;
 
 // Política de intentos fallidos: al tercer error, la cuenta se bloquea por un tiempo
@@ -40,7 +43,7 @@ const usuarioSchema = new mongoose.Schema(
     },
     rol: {
       type: String,
-      enum: { values: ROLES, message: 'El rol debe ser ADMIN, REPRESENTANTE, EMPLEADO o CLIENTE.' },
+      enum: { values: ROLES, message: 'El rol debe ser ADMIN, REPRESENTANTE, EMPLEADO, CLIENTE o AUDITOR.' },
       required: [true, 'El rol es obligatorio.'],
     },
     // El centro donde trabaja: solo lo tienen (y lo necesitan) los empleados
@@ -270,6 +273,7 @@ export {
   Usuario,
   ROLES,
   ROLES_DE_CENTRO,
+  ROLES_SOLO_LECTURA,
   PASSWORD_MINIMO,
   chequearPassword,
   chequearReferencias,
