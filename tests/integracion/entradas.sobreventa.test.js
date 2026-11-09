@@ -2,11 +2,11 @@
 // Recorren la API completa con Supertest (rutas, middlewares, controllers y models)
 // contra un MongoDB en memoria.
 import request from 'supertest';
-import app from '../app.js';
-import { Entrada } from '../models/entradas.js';
-import { Evento } from '../models/eventos.js';
-import { conectar, limpiar, desconectar } from './helpers/db.js';
-import { crearSala, crearEvento, crearCliente, crearUsuarioConToken } from './helpers/datos.js';
+import app from '../../app.js';
+import { Entrada } from '../../models/entradas.js';
+import { Evento } from '../../models/eventos.js';
+import { conectar, limpiar, desconectar } from '../helpers/db.js';
+import { crearSala, crearEvento, crearCliente, crearUsuarioConToken } from '../helpers/datos.js';
 
 beforeAll(conectar);
 afterEach(limpiar);
