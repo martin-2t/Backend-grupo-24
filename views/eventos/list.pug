@@ -12,7 +12,23 @@ block content
 
   if esGerencia
     .barra
+  form.filtros(method="GET" action="/panel/eventos")
+    label(for="desde") Desde
+    input#desde(type="date" name="desde" value=filtros.desde)
+
+    label(for="hasta") Hasta
+    input#hasta(type="date" name="hasta" value=filtros.hasta)
+
+    label(for="salaId") Centro
+    select#salaId(name="salaId")
+      option(value="") Todos
+      each sala in salas
+        option(value=sala.id selected=(filtros.salaId === String(sala.id)))= sala.nombre
+
+    button.btn.secundario(type="submit") Filtrar
+    a.btn.secundario(href="/panel/eventos") Limpiar
       a.btn(href="/panel/eventos/nuevo") + Nuevo evento
+      
 
   table
     thead
@@ -27,7 +43,7 @@ block content
     tbody
       if eventos.length === 0
         tr
-          td.vacio(colspan="7") Todavía no hay eventos cargados.
+          td.vacio(colspan="7") No hay eventos para mostrar.
       each evento in eventos
         tr
           td

@@ -458,3 +458,12 @@ code.codigo { display: inline-block; margin-left: 6px; padding: 2px 6px; backgro
 .checkin.rechazo { background: #c0443b; }
 .checkin form { margin-top: 12px; }
 .btn.grande { font-size: 1.1rem; padding: 12px 26px; background: #fff; color: #1f6f4f; }
+
+/* Campos de fecha de los filtros */
+form.filtros input {
+  padding: 7px 9px;
+  border: 1px solid #cfd8d8;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 0.88rem;
+}
