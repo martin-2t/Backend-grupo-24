@@ -10,6 +10,8 @@ html(lang="es")
   body
     header.top
       h1 Urbana Cult
+      input#menu-toggle.menu-check(type="checkbox" aria-hidden="true")
+      label.menu-boton(for="menu-toggle" aria-label="Abrir menú") ☰
       nav.main
         a(href="/panel") Inicio
         a(href="/panel/eventos") Eventos
@@ -34,3 +36,18 @@ html(lang="es")
       if alerta
         .flash.alerta= alerta
       block content
+
+    script.
+      //En pantallas chicas las tablas de listado se muestran como tarjetas
+      document.querySelectorAll('table').forEach(function (t) {
+        var ths = t.querySelectorAll('thead th');
+        if (!ths.length) return;
+        t.classList.add('apilada');
+        t.querySelectorAll('tbody tr').forEach(function (tr) {
+          Array.prototype.forEach.call(tr.children, function (td, i) {
+            if (ths[i] && !td.hasAttribute('colspan')) {
+              td.setAttribute('data-label', ths[i].textContent.trim());
+            }
+          });
+        });
+      });
