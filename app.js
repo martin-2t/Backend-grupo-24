@@ -4,6 +4,7 @@
 import express from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
+import asistenteRoutes from './routes/asistente.js';
 
 // middlewares propios
 import logger from './middleware/logger.js';
@@ -57,7 +58,7 @@ app.use('/consultas', consultasRoutes);
 // Van bajo /panel para no chocar con la API JSON, que usa los mismos nombres
 // (/clientes, /eventos, etc.) pero devuelve JSON en vez de HTML.
 app.use('/panel', paginasRoutes);
-
+app.use('/asistente', asistenteRoutes);
 // manejo de error de ruta no encontrada
 app.use(notFound);
 
