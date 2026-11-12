@@ -459,6 +459,7 @@ code.codigo { display: inline-block; margin-left: 6px; padding: 2px 6px; backgro
 .checkin form { margin-top: 12px; }
 .btn.grande { font-size: 1.1rem; padding: 12px 26px; background: #fff; color: #1f6f4f; }
 
+
 /* Campos de fecha de los filtros */
 form.filtros input {
   padding: 7px 9px;
@@ -466,4 +467,142 @@ form.filtros input {
   border-radius: 5px;
   font-family: inherit;
   font-size: 0.88rem;
+}
+
+/*media queries de header y menú en pantallas chicas*/
+
+/* Responsive: menú hamburguesa*/
+.menu-check {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.menu-boton { display: none; }
+
+@media (max-width: 700px) {
+  header.top {
+    flex-wrap: wrap;
+    padding: 14px 16px;
+  }
+
+  .menu-boton {
+    display: block;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .menu-check:focus-visible + .menu-boton {
+    outline: 2px solid #ff8552;
+  }
+
+  /*el menú arranca cerrado y se abre al tildar el checkbox */
+  nav.main {
+    display: none;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    gap: 2px;
+    margin-top: 12px;
+  }
+
+  .menu-check:checked ~ nav.main { display: flex; }
+
+  nav.main a {
+    width: 100%;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  }
+}
+
+
+/*media queries contenido (tarjetas, tablas y los filtros)*/
+
+@media (max-width: 700px) {
+  main { margin: 18px auto; }
+
+  h2 { font-size: 1.25rem; }
+
+  /*tarjetas del panel*/
+  .cards { gap: 10px; }
+  .card {
+    flex: 1 1 calc(50% - 10px);
+    min-width: 0;
+    padding: 14px 16px;
+  }
+
+  th, td {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+
+  /*tablas de detalle. El th no tiene ancho fijo*/
+  tbody th { width: auto; }
+
+  /*filtros y buscador, uno debajo del otro*/
+  form.filtros, form.buscador {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /*form.filtros select, form.buscador input { width: 100%; }*/
+    form.filtros select, form.filtros input, form.buscador input { width: 100%; }
+
+  
+  .encabezado .acciones { width: 100%; }
+}
+
+/*Tablas de listado como tarjetas en pantallas chicas*/
+@media (max-width: 700px) {
+  table.apilada {
+    display: block;
+    overflow: visible;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  table.apilada thead { display: none; }
+  table.apilada tbody { display: block; }
+
+   table.apilada tr {
+    display: block;
+    background: #fff;
+    border: 1px solid #e3dccd;
+    border-left: 5px solid #ff8552;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(15, 76, 76, 0.1);
+    margin-bottom: 18px;
+    padding: 4px 0;
+  }
+
+  table.apilada td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    text-align: right;
+    padding: 8px 14px;
+    border-bottom: 1px solid #f0e9db;
+  }
+
+  table.apilada td:last-child { border-bottom: none; }
+
+  table.apilada td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #0f4c4c;
+    text-align: left;
+  }
+
+  /*celdas sin título (por ejemplo "no hay eventos")*/
+  table.apilada td:not([data-label])::before { content: none; }
+  table.apilada td:not([data-label]) { justify-content: center; }
+
+  table.apilada td.acciones { white-space: normal; }
 }
