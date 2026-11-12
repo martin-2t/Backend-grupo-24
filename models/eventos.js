@@ -79,6 +79,34 @@ async function getEventosProximos() {
   return Evento.find({ estado: 'PROGRAMADO', fecha: { $gt: new Date() } }).sort({ fecha: 1 });
 }
 
+//Valida los filtros de la cartelera. Las fechas llegan como "AAAA-MM-DD".
+//Devuelve el mensaje de error, o null si están bien.
+function validarFiltros({ desde, hasta, salaId } = {}) {
+  const esFecha = (f) =>
+    //expresión regular .test(f) pregunta si f cumple ese patrón
+    /^\d{4}-\d{2}-\d{2}$/.test(f) && !Number.isNaN(new Date(`${f}T00:00:00-03:00`).getTime());
+
+  if (desde && !esFecha(desde)) return 'La fecha "desde" debe tener el formato AAAA-MM-DD.';
+  if (hasta && !esFecha(hasta)) return 'La fecha "hasta" debe tener el formato AAAA-MM-DD.';
+  if (desde && hasta && desde > hasta) return 'La fecha "desde" no puede ser posterior a "hasta".';
+  if (salaId && !mongoose.isObjectIdOrHexString(salaId)) return 'El campo "salaId" no es un ID de sala válido.';
+  return null;
+}
+
+//READ | Eventos filtrados por rango de fechas y/o sala. Los tres filtros son
+//opcionales. Las fechas se toman en hora argentina (UTC-3) y
+//"hasta" incluye todo ese día completo. Se devuelven ordenados por fecha, el más cercano primero.
+async function getEventosFiltrados({ desde, hasta, salaId } = {}) {
+  const filtro = {};
+  if (desde || hasta) {
+    filtro.fecha = {};
+    if (desde) filtro.fecha.$gte = new Date(`${desde}T00:00:00-03:00`);
+    if (hasta) filtro.fecha.$lte = new Date(`${hasta}T23:59:59.999-03:00`);
+  }
+  if (salaId) filtro.salaId = salaId;
+  return Evento.find(filtro).sort({ fecha: 1 });
+}
+
 // CREATE | El _id lo genera MongoDB y el estado arranca en PROGRAMADO (default del Schema)
 async function createEvento({ nombre, descripcion, fecha, salaId, precio }) {
   return Evento.create({ nombre, descripcion, fecha, salaId, precio });
@@ -261,4 +289,6 @@ export {
   validarCapacidadDeSala,
   validar,
   validarVenta,
+  getEventosFiltrados,
+  validarFiltros,
 };

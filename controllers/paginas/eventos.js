@@ -2,12 +2,23 @@
 import * as eventosModel from '../../models/eventos.js';
 import * as entradasModel from '../../models/entradas.js';
 import { volver, volverConError, enriquecerEvento, enriquecerEntrada, salasElegibles } from './comunes.js';
+import * as salasModel from '../../models/salas.js';
 
 async function listar(req, res, next) {
   try {
+    //Filtros de la cartelera: desde, hasta y centro
+    const { desde = '', hasta = '', salaId = '' } = req.query;
+    const filtros = { desde, hasta, salaId };
+    const error = eventosModel.validarFiltros(filtros);
+    //Si algún filtro es inválido, avisamos y mostramos todos los eventos
+    const eventos = await eventosModel.getEventosFiltrados(error ? {} : filtros);
+
     res.render('eventos/list', {
       titulo: 'Eventos',
-      eventos: await Promise.all((await eventosModel.getAllEventos()).map(enriquecerEvento)),
+      eventos: await Promise.all(eventos.map(enriquecerEvento)),
+      salas: await salasModel.getAllSalas(),
+      filtros,
+      alerta: error,
     });
   } catch (error) {
     next(error);
