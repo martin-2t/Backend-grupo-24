@@ -1,0 +1,146 @@
+/* Chat desplegable del asistente de cartelera. Usa la misma paleta del panel. */
+
+.asistente-boton {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 50;
+  background: #17604a;
+  color: #fff;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(15, 76, 76, 0.35);
+}
+
+.asistente-boton:hover { background: #0f4433; }
+
+.asistente-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 82px;
+  z-index: 50;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  height: 480px;
+  max-height: calc(100vh - 110px);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(15, 76, 76, 0.28);
+}
+
+/* sin esto, display:flex le gana al atributo hidden */
+.asistente-panel[hidden],
+.asistente-sugerencias[hidden] { display: none; }
+
+.asistente-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(120deg, #0f4c4c, #147d7d);
+  color: #fff;
+}
+
+.asistente-cerrar {
+  background: transparent;
+  border: 0;
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.asistente-mensajes {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #fdf6ec;
+}
+
+.asistente-msg {
+  max-width: 85%;
+  padding: 9px 13px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  white-space: pre-wrap; /* respeta los saltos de línea de la respuesta */
+  overflow-wrap: anywhere;
+}
+
+.asistente-msg.usuario {
+  align-self: flex-end;
+  background: #17604a;
+  color: #fff;
+  border-bottom-right-radius: 3px;
+}
+
+.asistente-msg.asistente {
+  align-self: flex-start;
+  background: #fff;
+  color: #1e2b2f;
+  border-bottom-left-radius: 3px;
+  box-shadow: 0 1px 3px rgba(15, 76, 76, 0.12);
+}
+
+.asistente-msg.pensando { color: #6b7f83; font-style: italic; }
+
+.asistente-msg.error {
+  background: #fde3d8;
+  color: #a13d1e;
+}
+
+.asistente-sugerencias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #fdf6ec;
+}
+
+.sugerencia {
+  background: #e4f3f0;
+  color: #0f4c4c;
+  border: 1px solid #cfe8e3;
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.sugerencia:hover { background: #cfe8e3; }
+
+.asistente-form {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid #f0e9db;
+}
+
+.asistente-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #cfd8d8;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.asistente-form .btn:disabled { opacity: 0.6; cursor: default; }
+
+@media (max-width: 700px) {
+  .asistente-boton { right: 16px; bottom: 16px; }
+  .asistente-panel { right: 16px; bottom: 72px; }
+}

@@ -1,0 +1,17 @@
+//- Chat desplegable del asistente de cartelera. layout.pug lo incluye solo cuando hay
+//- sesión iniciada, así que no aparece en el login. La lógica está en public/js/asistente.js
+#asistente(data-usuario=usuario.id)
+  button#asistente-abrir.asistente-boton(type="button" aria-label="Abrir el asistente de cartelera" aria-expanded="false") Asistente
+  section#asistente-panel.asistente-panel(hidden aria-label="Asistente de cartelera")
+    header.asistente-cabecera
+      strong Asistente de cartelera
+      button#asistente-cerrar.asistente-cerrar(type="button" aria-label="Cerrar el asistente") ×
+    #asistente-mensajes.asistente-mensajes(aria-live="polite")
+    #asistente-sugerencias.asistente-sugerencias
+      button.sugerencia(type="button") ¿Qué hay para ver hoy?
+      button.sugerencia(type="button") ¿Qué eventos hay este fin de semana?
+      button.sugerencia(type="button") ¿Cuál es el más barato?
+    form#asistente-form.asistente-form
+      input#asistente-input(type="text" maxlength="500" placeholder="Preguntá por la cartelera..." autocomplete="off" aria-label="Tu pregunta" required)
+      button.btn(type="submit") Enviar
+script(src="/public/js/asistente.js" defer)

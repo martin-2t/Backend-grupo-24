@@ -7,6 +7,7 @@ html(lang="es")
     link(rel="preconnect" href="https://fonts.googleapis.com")
     link(href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet")
     link(rel="stylesheet" href="/public/css/estilos.css")
+    link(rel="stylesheet" href="/public/css/asistente.css")
   body
     header.top
       h1 Urbana Cult
@@ -44,6 +45,8 @@ html(lang="es")
       if alerta
         .flash.alerta= alerta
       block content
+    if usuario
+      include asistente
 
     script.
       //En pantallas chicas las tablas de listado se muestran como tarjetas
