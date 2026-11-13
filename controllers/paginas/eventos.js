@@ -11,11 +11,19 @@ async function listar(req, res, next) {
     const filtros = { desde, hasta, salaId };
     const error = eventosModel.validarFiltros(filtros);
     //Si algún filtro es inválido, avisamos y mostramos todos los eventos
-    const eventos = await eventosModel.getEventosFiltrados(error ? {} : filtros);
+    const todos = await eventosModel.getEventosFiltrados(error ? {} : filtros);
+    // El cliente ve la cartelera: solo eventos programados que todavía no pasaron.
+    // El personal ve todos, y los que ya pasaron sin finalizar llevan una marca
+    const esCliente = req.usuario.rol === 'CLIENTE';
+    const eventos = esCliente
+      ? todos.filter((e) => e.estado === 'PROGRAMADO' && !entradasModel.eventoYaPaso(e.fecha))
+      : todos;
 
     res.render('eventos/list', {
-      titulo: 'Eventos',
-      eventos: await Promise.all(eventos.map(enriquecerEvento)),
+      titulo: esCliente ? 'Cartelera' : 'Eventos',
+      eventos: await Promise.all(
+        eventos.map(async (e) => ({ ...(await enriquecerEvento(e)), yaPaso: entradasModel.eventoYaPaso(e.fecha) }))
+      ),
       salas: await salasModel.getAllSalas(),
       filtros,
       alerta: error,
@@ -95,6 +103,7 @@ async function detalle(req, res, next) {
     res.render('eventos/detail', {
       titulo: evento.nombre,
       evento: enriquecido,
+      yaPaso: entradasModel.eventoYaPaso(evento.fecha),
       compra: rol === 'CLIENTE' ? opcionesDeCompra(enriquecido) : null,
       entradas: puedeVerEntradas
         ? await Promise.all(

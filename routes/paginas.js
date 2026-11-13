@@ -71,10 +71,13 @@ router.post('/eventos/:id/finalizar', gerencia, soloSuCentroPagina(salasDelEvent
 router.post('/eventos/:id/cancelar', gerencia, soloSuCentroPagina(salasDelEvento), eventos.cancelar);
 
 // Salas. Ver: todos. Alta y baja: ADMIN. Edición: ADMIN o el REPRESENTANTE de esa sala
-router.get('/salas', salas.listar);
+// Las salas muestran datos de gestión (estado, capacidad, ocupación): el cliente no las ve.
+// Para buscar eventos de un centro tiene el filtro "Centro" de la cartelera
+const verSalas = permitirPagina('ADMIN', 'REPRESENTANTE', 'EMPLEADO', 'AUDITOR');
+router.get('/salas', verSalas, salas.listar);
 router.get('/salas/nueva', soloAdmin, salas.nuevoForm);
 router.post('/salas/nueva', soloAdmin, salas.crear);
-router.get('/salas/:id', salas.detalle);
+router.get('/salas/:id', verSalas, salas.detalle);
 router.get('/salas/:id/editar', gerencia, soloSuCentroPagina(salaDelParametro), salas.editarForm);
 router.post('/salas/:id/editar', gerencia, soloSuCentroPagina(salaDelParametro), salas.actualizar);
 router.post('/salas/:id/estado', soloAdmin, salas.cambiarEstado);
