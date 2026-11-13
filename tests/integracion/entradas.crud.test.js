@@ -9,13 +9,15 @@ beforeAll(conectar);
 afterEach(limpiar);
 afterAll(desconectar);
 
-//Prepara una sala, un evento, un cliente y un admin con su token
+//Prepara una sala, un evento, un cliente, un EMPLEADO de esa sala (opera la boletería) y un
+//ADMIN (administra la plataforma: consulta y borra, pero no vende ni reserva)
 async function escenario() {
   const sala = await crearSala({ capacidad: 10 });
   const evento = await crearEvento(sala.id);
   const cliente = await crearCliente();
-  const { token } = await crearUsuarioConToken({ rol: 'ADMIN' });
-  return { sala, evento, cliente, token };
+  const { token } = await crearUsuarioConToken({ rol: 'EMPLEADO', salaId: sala.id });
+  const { token: tokenAdmin } = await crearUsuarioConToken({ rol: 'ADMIN' });
+  return { sala, evento, cliente, token, tokenAdmin };
 }
 
 describe('Entradas: acceso y listado', () => {
@@ -26,18 +28,18 @@ describe('Entradas: acceso y listado', () => {
   });
 
   test('el ADMIN lista las entradas', async () => {
-    const { token } = await escenario();
+    const { tokenAdmin } = await escenario();
 
     const respuesta = await request(app)
       .get('/entradas')
-      .set('Authorization', `Bearer ${token}`);
+      .set('Authorization', `Bearer ${tokenAdmin}`);
 
     expect(respuesta.status).toBe(200);
     expect(Array.isArray(respuesta.body)).toBe(true);
   });
 });
 
-//Crea una reserva con el token del admin y devuelve la respuesta de la API
+//Crea una reserva con el token del empleado y devuelve la respuesta de la API
 function reservar({ token, evento, cliente }) {
   return request(app)
     .post('/entradas/reservar')
@@ -46,7 +48,7 @@ function reservar({ token, evento, cliente }) {
 }
 
 describe('Entradas: reservar, confirmar y cancelar', () => {
-  test('el ADMIN crea una reserva: queda RESERVADA (201)', async () => {
+  test('el EMPLEADO crea una reserva: queda RESERVADA (201)', async () => {
     const datos = await escenario();
 
     const respuesta = await reservar(datos);
@@ -137,7 +139,7 @@ describe('Entradas: permisos', () => {
   test('un EMPLEADO de otro centro no puede reservar en este evento (403)', async () => {
     const { evento, cliente } = await escenario();
     const otraSala = await crearSala({ nombre: 'Otra Sala' });
-    const { token } = await crearUsuarioConToken({ rol: 'EMPLEADO', salaId: otraSala.id });
+    const { token } = await crearUsuarioConToken({ rol: 'EMPLEADO', salaId: otraSala.id, email: 'otro@urbanacult.com' });
 
     const respuesta = await request(app)
       .post('/entradas/reservar')
@@ -150,14 +152,13 @@ describe('Entradas: permisos', () => {
   test('borrar una entrada es solo del ADMIN: el EMPLEADO recibe 403 y el ADMIN 204', async () => {
     const datos = await escenario();
     const reserva = await reservar(datos);
-    const { token: tokenEmpleado } = await crearUsuarioConToken({ rol: 'EMPLEADO', salaId: datos.sala.id });
     const borrar = (token) =>
       request(app)
         .delete(`/entradas/${reserva.body._id}`)
         .set('Authorization', `Bearer ${token}`);
 
-    const delEmpleado = await borrar(tokenEmpleado);
-    const delAdmin = await borrar(datos.token);
+    const delEmpleado = await borrar(datos.token);
+    const delAdmin = await borrar(datos.tokenAdmin);
 
     expect(delEmpleado.status).toBe(403);
     expect(delAdmin.status).toBe(204);

@@ -13,7 +13,7 @@ function compraComoCliente(req, res, next) {
   next();
 }
 
-// Venta en boletería: el EMPLEADO (o un ADMIN) puede indicar un clienteId existente o enviar
+// Venta en boletería: el EMPLEADO o el REPRESENTANTE puede indicar un clienteId existente o enviar
 // los datos del comprador en "cliente". Si ya existe un cliente con ese email se usa ese;
 // si no, se crea en el momento.
 async function clienteDeBoleteria(req, res, next) {

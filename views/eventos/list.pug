@@ -2,18 +2,16 @@ extends ../layout
 
 block content
   - const rol = usuario ? usuario.rol : null
-  - const esAdmin = rol === 'ADMIN'
-  - const esGerencia = esAdmin || rol === 'REPRESENTANTE'
-  - const esPersonal = rol !== null && rol !== 'CLIENTE'
-  //- El ADMIN opera sobre todo; el resto del personal, solo sobre la sala donde trabaja
-  - const esMiSala = (salaId) => esAdmin || String(salaId) === String(usuario.salaId)
+  //- gestionaEventos y operaBoleteria los define el middleware marcarPermisosDeVista.
+  //- El personal opera solo sobre la sala donde trabaja; el ADMIN no opera eventos ni boletería
+  - const esMiSala = (salaId) => String(salaId) === String(usuario.salaId)
   - const esCliente = rol === 'CLIENTE'
 
   h2= esCliente ? 'Cartelera' : 'Eventos'
 
-  //- Solo gerencia crea eventos. (El botón había quedado fuera de este if, dentro del
+  //- Solo el REPRESENTANTE crea eventos. (El botón había quedado fuera de este if, dentro del
   //- formulario de filtros, por un error de indentación al agregar los filtros.)
-  if esGerencia
+  if gestionaEventos
     .barra
       a.btn(href="/panel/eventos/nuevo") + Nuevo evento
 
@@ -91,7 +89,7 @@ block content
             td.acciones
               .grupo
                 a.btn.chico.secundario(href="/panel/eventos/" + evento.id) Ver
-                if esGerencia && esMiSala(evento.salaId)
+                if gestionaEventos && esMiSala(evento.salaId)
                   a.btn.chico.editar(href="/panel/eventos/" + evento.id + "/editar") Editar
-                if esPersonal && esMiSala(evento.salaId) && evento.estado === 'PROGRAMADO' && evento.disponibles > 0
+                if operaBoleteria && esMiSala(evento.salaId) && evento.estado === 'PROGRAMADO' && evento.disponibles > 0
                   a.btn.chico(href="/panel/entradas/nueva?evento=" + evento.id) Vender

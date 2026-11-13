@@ -6,17 +6,19 @@ import { compraComoCliente, clienteDeBoleteria, entradaPropia } from '../middlew
 
 const router = express.Router();
 
-const personal = [autenticar, permitir('ADMIN', 'EMPLEADO')];
-// Consulta: el personal y el AUDITOR (que ve todo, pero no modifica nada)
-const lectura = [autenticar, permitir('ADMIN', 'EMPLEADO', 'AUDITOR')];
+// Boletería: el personal de cada centro (EMPLEADO y REPRESENTANTE), solo en su centro.
+// El ADMIN administra la plataforma: no opera la boletería (mínimo privilegio)
+const personal = [autenticar, permitir('EMPLEADO', 'REPRESENTANTE')];
+// Consulta: el personal (solo lo de su centro), y el ADMIN y el AUDITOR (toda la red)
+const lectura = [autenticar, permitir('ADMIN', 'EMPLEADO', 'REPRESENTANTE', 'AUDITOR')];
 
 router.get('/', ...lectura, entradasController.getAllEntradas);
 router.get('/:id', autenticar, entradaPropia, soloSuCentro(salaDeLaEntrada), entradasController.getEntradaById);
 
-// Compra: el CLIENTE compra para sí (web); el EMPLEADO vende en su centro (boletería)
+// Compra: el CLIENTE compra para sí (web); el personal vende en su centro (boletería)
 const compra = [
   autenticar,
-  permitir('ADMIN', 'EMPLEADO', 'CLIENTE'),
+  permitir('EMPLEADO', 'REPRESENTANTE', 'CLIENTE'),
   compraComoCliente,
   clienteDeBoleteria,
   soloSuCentro(salaDelEventoDelBody),
@@ -37,6 +39,7 @@ router.post(
 router.put('/:id/confirmar', ...personal, soloSuCentro(salaDeLaEntrada), entradasController.confirmarReserva);
 router.put('/:id/cancelar', ...personal, soloSuCentro(salaDeLaEntrada), entradasController.cancelarEntrada);
 router.put('/:id', ...personal, soloSuCentro(salaDeLaEntrada), entradasController.updateEntrada);
+// Borrado físico: mantenimiento de datos de la plataforma, solo ADMIN
 router.delete('/:id', autenticar, permitir('ADMIN'), entradasController.deleteEntrada);
 
 export default router;

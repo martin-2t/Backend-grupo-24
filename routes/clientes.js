@@ -4,10 +4,11 @@ import { autenticar, permitir } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Los clientes son datos personales: solo el personal (ADMIN y EMPLEADO) los gestiona.
-// El AUDITOR puede consultarlos, pero no modificarlos
-const personal = [autenticar, permitir('ADMIN', 'EMPLEADO')];
-const lectura = [autenticar, permitir('ADMIN', 'EMPLEADO', 'AUDITOR')];
+// Los clientes son datos personales compartidos por toda la red. Los cargan y editan el
+// personal de los centros (EMPLEADO y REPRESENTANTE); el ADMIN y el AUDITOR los consultan.
+// El borrado físico (por ejemplo, si un cliente pide que borren sus datos) es solo del ADMIN
+const personal = [autenticar, permitir('EMPLEADO', 'REPRESENTANTE')];
+const lectura = [autenticar, permitir('ADMIN', 'EMPLEADO', 'REPRESENTANTE', 'AUDITOR')];
 
 router.get('/', ...lectura, clientesController.listar);
 router.get('/:id', ...lectura, clientesController.obtener);

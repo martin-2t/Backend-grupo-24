@@ -10,18 +10,21 @@ import { volver } from './comunes.js';
 // Resumen de la matriz de permisos que aplica la API, para mostrar al ingresar
 const PERMISOS = {
   ADMIN: [
-    'Gestionar todas las salas, eventos, entradas y clientes de la red.',
-    'Dar de alta empleados y gerentes, y administrar los usuarios.',
+    'Administrar la plataforma: los usuarios de toda la red y las salas (alta, edición y baja).',
+    'Consultar los eventos, entradas, clientes y ventas de toda la red, con las métricas de compras web.',
+    'Cancelar un evento por fuerza mayor y hacer borrados físicos de datos.',
+    'No opera la boletería ni la programación de los centros: eso lo hace el personal de cada centro.',
   ],
   REPRESENTANTE: [
-    'Crear y editar los eventos y los datos de su centro.',
+    'Crear, editar, finalizar y cancelar los eventos de su centro, y editar los datos de su sala.',
     'Hacer todo lo que hace un cajero: vender, reservar, confirmar y cancelar entradas de su centro, y gestionar clientes.',
     'Dar de alta, suspender, activar y desbloquear a los empleados de su centro.',
+    'Validar entradas en la puerta y consultar las ventas de su centro.',
   ],
   EMPLEADO: [
     'Vender, reservar, confirmar y cancelar entradas de su centro (boletería).',
     'Consultar o cargar clientes.',
-    'Ver la cartelera de eventos y los datos de las salas.',
+    'Validar entradas en la puerta y consultar las ventas de su centro.',
   ],
   CLIENTE: [
     'Ver la cartelera de eventos de los 25 centros.',

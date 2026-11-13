@@ -98,11 +98,21 @@ function permitirPagina(...roles) {
   };
 }
 
-// Panel: avisa a las vistas si el usuario es de solo lectura (AUDITOR), para que no muestren
-// botones de acciones que el servidor igual va a rechazar. Va después de requerirLogin
-function marcarSoloLectura(req, res, next) {
-  res.locals.soloLectura = usuariosModel.ROLES_SOLO_LECTURA.includes(req.usuario.rol);
+// Panel: le dice a las vistas qué puede hacer el usuario, para que muestren solo los botones
+// que le sirven (el servidor igual rechaza lo que no corresponde). Las reglas de rol quedan en
+// un solo lugar, en vez de repetirse en cada vista. Va después de requerirLogin
+//  - operaBoleteria: vender, reservar, confirmar, cancelar entradas y cargar clientes
+//    (EMPLEADO y REPRESENTANTE, en su centro).
+//  - gestionaEventos: crear, editar y finalizar eventos (REPRESENTANTE, en su centro).
+//  - esNegocio: ve toda la red y las métricas (ADMIN y AUDITOR).
+//  - soloLectura: no modifica nada (AUDITOR).
+function marcarPermisosDeVista(req, res, next) {
+  const { rol } = req.usuario;
+  res.locals.operaBoleteria = ['EMPLEADO', 'REPRESENTANTE'].includes(rol);
+  res.locals.gestionaEventos = rol === 'REPRESENTANTE';
+  res.locals.esNegocio = ['ADMIN', 'AUDITOR'].includes(rol);
+  res.locals.soloLectura = usuariosModel.ROLES_SOLO_LECTURA.includes(rol);
   next();
 }
 
-export { autenticar, cargarUsuario, requerirLogin, permitir, permitirPagina, marcarSoloLectura };
+export { autenticar, cargarUsuario, requerirLogin, permitir, permitirPagina, marcarPermisosDeVista };

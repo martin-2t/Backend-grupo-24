@@ -153,6 +153,13 @@ async function cancelarEvento(id) {
   return updateEventoById(id, { estado: 'CANCELADO' });
 }
 
+// Eventos sobre los que un usuario puede consultar ventas: el personal de un centro, solo los de
+// su centro; el resto (ADMIN y AUDITOR), todos
+function eventosParaUsuario(usuario, eventos) {
+  if (!['EMPLEADO', 'REPRESENTANTE'].includes(usuario.rol)) return eventos;
+  return eventos.filter((e) => String(e.salaId) === String(usuario.salaId));
+}
+
 // ---- Reglas que cruzan entidades ----
 // Viven acá porque el evento es lo que ata sala, cliente y entradas. Poniéndolas de
 // este lado ningún otro model necesita conocer a eventos, y no se arman ciclos.
@@ -276,6 +283,7 @@ async function validarVenta(eventoId, clienteId) {
 
 export {
   Evento,
+  eventosParaUsuario,
   getAllEventos,
   contarEventos,
   getEventoById,

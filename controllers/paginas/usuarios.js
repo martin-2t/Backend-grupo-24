@@ -21,10 +21,27 @@ async function datosFormulario(actor) {
 
 async function listar(req, res, next) {
   try {
-    const usuarios = await gestion.usuariosVisibles(req.usuario);
+    const filtros = {
+      rol: req.query.rol || '',
+      estado: req.query.estado || '',
+      salaId: req.query.salaId || '',
+    };
+    // Primero lo que el usuario puede ver (el REPRESENTANTE, solo a los empleados de su centro),
+    // después los filtros y el orden
+    const usuarios = gestion.filtrarYOrdenar(await gestion.usuariosVisibles(req.usuario), filtros);
     const salas = await salasModel.getAllSalas();
     const nombreSala = Object.fromEntries(salas.map((s) => [s.id, s.nombre]));
-    res.render('usuarios/list', { titulo: 'Usuarios', usuarios, nombreSala });
+    res.render('usuarios/list', {
+      titulo: 'Usuarios',
+      usuarios,
+      nombreSala,
+      filtros,
+      roles: gestion.ORDEN_DE_ROLES,
+      estados: gestion.ESTADOS_DE_USUARIO,
+      salas,
+      // Los filtros de rol y centro solo tienen sentido para quien ve a toda la red
+      filtrosCompletos: ['ADMIN', 'AUDITOR'].includes(req.usuario.rol),
+    });
   } catch (error) {
     next(error);
   }

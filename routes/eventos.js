@@ -10,12 +10,13 @@ router.get('/proximos', eventosController.proximos);
 router.get('/', eventosController.listar);
 router.get('/:id', eventosController.obtener);
 
-// Gestión: ADMIN, o REPRESENTANTE solo para eventos de su propio centro.
-// El cajero (EMPLEADO) vende entradas, pero no publica ni modifica eventos
-const gestion = [autenticar, permitir('ADMIN', 'REPRESENTANTE')];
+// Gestión: el REPRESENTANTE, solo para los eventos de su centro. El cajero (EMPLEADO) vende
+// entradas, pero no publica ni modifica eventos. El ADMIN no gestiona la programación de los
+// centros, salvo cancelar un evento por fuerza mayor (una decisión de plataforma)
+const gestion = [autenticar, permitir('REPRESENTANTE')];
 router.post('/', ...gestion, soloSuCentro(salaDelBody), eventosController.crear);
 router.put('/:id', ...gestion, soloSuCentro(salasDelEvento), eventosController.actualizar);
 router.put('/:id/finalizar', ...gestion, soloSuCentro(salasDelEvento), eventosController.finalizar);
-router.put('/:id/cancelar', ...gestion, soloSuCentro(salasDelEvento), eventosController.cancelar);
+router.put('/:id/cancelar', autenticar, permitir('ADMIN', 'REPRESENTANTE'), soloSuCentro(salasDelEvento), eventosController.cancelar);
 
 export default router;
