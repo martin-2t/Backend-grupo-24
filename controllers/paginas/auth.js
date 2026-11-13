@@ -1,9 +1,10 @@
-// Login y registro del panel. El login valida email y contraseña contra MongoDB, firma un
-// JWT y lo guarda en una cookie httpOnly: así la página "recuerda" al usuario entre
-// peticiones sin guardar nada en el servidor.
+// Login y registro del panel. El login pasa por Passport (estrategia local, ver
+// config/passport.js), firma un JWT y lo guarda en una cookie httpOnly: así la página
+// "recuerda" al usuario entre peticiones sin guardar nada en el servidor.
 import * as usuariosModel from '../../models/usuarios.js';
 import * as salasModel from '../../models/salas.js';
 import { generarToken, guardarCookie, borrarCookie } from '../../config/jwt.js';
+import { autenticarCredenciales } from '../../config/passport.js';
 import { volver } from './comunes.js';
 
 // Resumen de la matriz de permisos que aplica la API, para mostrar al ingresar
@@ -38,13 +39,12 @@ function loginForm(req, res) {
 
 async function login(req, res, next) {
   try {
-    const { email, password } = req.body;
-    const resultado = await usuariosModel.iniciarSesion(email, password);
+    const resultado = await autenticarCredenciales(req, res);
     if (resultado.error) {
       return res.status(resultado.status).render('auth/login', {
         titulo: 'Ingresar',
         error: resultado.error,
-        email,
+        email: req.body.email || '',
       });
     }
 

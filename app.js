@@ -10,6 +10,9 @@ import logger from './middleware/logger.js';
 import notFound from './middleware/notFound.js';
 import errorHandler from './middleware/errorHandler.js';
 
+// autenticación: Passport con la estrategia local (ver config/passport.js)
+import passport from './config/passport.js';
+
 // rutas de la API (JSON)
 import inicioRoutes from './routes/inicio.js';
 import clientesRoutes from './routes/clientes.js';
@@ -41,6 +44,7 @@ if (process.env.NODE_ENV !== 'test') {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // para leer los formularios de las vistas Pug
 app.use(cookieParser()); // lee la cookie "token" del JWT
+app.use(passport.initialize()); // sin passport.session(): la identidad viaja en el JWT
 app.use('/public', express.static(path.join(import.meta.dirname, 'public')));
 
 // declaracion de rutas de la API (JSON)
