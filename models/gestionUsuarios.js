@@ -29,6 +29,24 @@ async function usuariosVisibles(actor) {
   return usuariosModel.Usuario.find({ rol: 'EMPLEADO', salaId: actor.salaId });
 }
 
+// Filtros de la lista de usuarios: por rol, por estado (ACTIVO, SUSPENDIDO o BLOQUEADO, que es
+// un bloqueo por intentos fallidos todavía vigente) y por centro. Ordena por rol (de plataforma a
+// cliente) y después por nombre. Función pura: recibe la lista y la hora, sin tocar la base
+const ORDEN_DE_ROLES = ['ADMIN', 'AUDITOR', 'REPRESENTANTE', 'EMPLEADO', 'CLIENTE'];
+const ESTADOS_DE_USUARIO = ['ACTIVO', 'SUSPENDIDO', 'BLOQUEADO'];
+
+function filtrarYOrdenar(usuarios, { rol = '', estado = '', salaId = '' } = {}, ahora = new Date()) {
+  const bloqueado = (u) => Boolean(u.bloqueadoHasta && new Date(u.bloqueadoHasta) > ahora);
+  return usuarios
+    .filter((u) => !rol || u.rol === rol)
+    .filter((u) => !estado || (estado === 'BLOQUEADO' ? bloqueado(u) : u.estado === estado))
+    .filter((u) => !salaId || String(u.salaId) === String(salaId))
+    .sort((a, b) =>
+      ORDEN_DE_ROLES.indexOf(a.rol) - ORDEN_DE_ROLES.indexOf(b.rol) ||
+      String(a.nombre).localeCompare(String(b.nombre), 'es')
+    );
+}
+
 // Alta de personal. Devuelve { usuario } o { error, status }.
 async function crearPersonal(actor, { nombre, apellido, email, password, rol, salaId }) {
   if (!rolesCreables(actor).includes(rol)) {
@@ -71,4 +89,4 @@ async function crearPersonal(actor, { nombre, apellido, email, password, rol, sa
 }
 
 
-export { rolesCreables, puedeGestionar, usuariosVisibles, crearPersonal };
+export { rolesCreables, puedeGestionar, usuariosVisibles, crearPersonal, filtrarYOrdenar, ORDEN_DE_ROLES, ESTADOS_DE_USUARIO };

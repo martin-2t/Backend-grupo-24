@@ -1,10 +1,10 @@
 extends layout
 
 block content
+  //- Panel general del personal, el ADMIN y el AUDITOR (el cliente tiene su propio inicio).
+  //- operaBoleteria y gestionaEventos los define el middleware marcarPermisosDeVista
   - const esPersonal = usuario && usuario.rol !== 'CLIENTE'
-  - const esGerencia = usuario && (usuario.rol === 'ADMIN' || usuario.rol === 'REPRESENTANTE')
-  //- soloLectura (AUDITOR) lo define el middleware marcarSoloLectura: ve los números, no opera
-  - const puedeVender = esPersonal && !soloLectura
+  - const puedeVender = operaBoleteria
   h2 Panel general
 
   .cards
@@ -29,7 +29,7 @@ block content
     .barra
       if puedeVender
         a.btn(href="/panel/entradas/nueva") Vender entrada
-      if esGerencia
+      if gestionaEventos
         a.btn(href="/panel/eventos/nuevo") + Nuevo evento
       a.btn.secundario(href="/panel/consultas") Ver consultas
 

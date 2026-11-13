@@ -7,6 +7,27 @@ block content
     .barra
       a.btn(href="/panel/usuarios/nuevo") + Nuevo usuario
 
+  form.filtros(method="GET" action="/panel/usuarios")
+    if filtrosCompletos
+      label(for="rol") Rol
+      select#rol(name="rol")
+        option(value="") Todos
+        each r in roles
+          option(value=r selected=(filtros.rol === r))= r
+    label(for="estado") Estado
+    select#estado(name="estado")
+      option(value="") Todos
+      each e in estados
+        option(value=e selected=(filtros.estado === e))= e
+    if filtrosCompletos
+      label(for="salaId") Centro
+      select#salaId(name="salaId")
+        option(value="") Todos
+        each sala in salas
+          option(value=sala.id selected=(filtros.salaId === String(sala.id)))= sala.nombre
+    button.btn.secundario(type="submit") Filtrar
+    a.btn.secundario(href="/panel/usuarios") Limpiar
+
   table
     thead
       tr

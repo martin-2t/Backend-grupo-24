@@ -66,6 +66,12 @@ h2 {
   box-shadow: 0 2px 6px rgba(15, 76, 76, 0.1);
   flex: 1;
   min-width: 160px;
+  /* El título arriba y el número siempre abajo: si un título ocupa dos líneas, los números de
+     todas las cards de la fila quedan igual alineados */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
 }
 
 .card .num {

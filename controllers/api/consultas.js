@@ -13,13 +13,17 @@ async function entradasVendidas(req, res, next) {
       if (!evento) {
         return res.status(404).json({ error: 'Evento no encontrado' });
       }
+      //El personal de un centro solo consulta las ventas de los eventos de su centro
+      if (!eventosModel.eventosParaUsuario(req.usuario, [evento]).length) {
+        return res.status(403).json({ error: 'Solo podés consultar las ventas de los eventos de tu centro.' });
+      }
       const entradas = await entradasModel.getEntradasByEvento(eventoId);
       const vendidas = entradas.filter((e) => ['VALIDA', 'USADA'].includes(e.estado)).length;
       return res.status(200).json({ eventoId: evento.id, evento: evento.nombre, vendidas });
     }
 
     //Promise.all espera a que terminen todas las consultas, una por evento
-    const eventos = await eventosModel.getAllEventos();
+    const eventos = eventosModel.eventosParaUsuario(req.usuario, await eventosModel.getAllEventos());
     const resumen = await Promise.all(
       eventos.map(async (evento) => {
         const entradas = await entradasModel.getEntradasByEvento(evento.id);

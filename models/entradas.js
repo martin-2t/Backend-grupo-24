@@ -133,6 +133,20 @@ function visiblesPara(rol, entradas) {
   return entradas.filter((e) => !SOLO_PARA_EL_NEGOCIO.includes(e.estado));
 }
 
+// El personal de un centro (EMPLEADO y REPRESENTANTE) trabaja dentro de su centro: además de no
+// ver lo que es solo del negocio, ve únicamente las entradas de los eventos de su centro (cada
+// entrada lleva el nombre del comprador). Es el mismo criterio de soloSuCentro, aplicado a lo
+// que se lee y no solo a lo que se hace. El ADMIN y el AUDITOR ven toda la red
+const ROLES_DE_CENTRO = ['EMPLEADO', 'REPRESENTANTE'];
+
+async function entradasParaUsuario(usuario, entradas) {
+  const porEstado = visiblesPara(usuario.rol, entradas);
+  if (!ROLES_DE_CENTRO.includes(usuario.rol)) return porEstado;
+  const delCentro = await mongoose.model('Evento').find({ salaId: usuario.salaId }, { _id: 1 });
+  const ids = new Set(delCentro.map((e) => String(e._id)));
+  return porEstado.filter((e) => ids.has(String(e.eventoId)));
+}
+
 // ---- Stock único: control de sobreventa ----
 // Cada evento lleva un contador "lugaresOcupados". Contar las entradas y después crear la
 // nueva no alcanza: si dos compras llegan juntas por el último lugar, las dos cuentan
@@ -559,6 +573,7 @@ export {
   MAXIMO_POR_COMPRA,
   minutosDeRetencion,
   visiblesPara,
+  entradasParaUsuario,
   crearCompra,
   getCompra,
   pagarCompra,
