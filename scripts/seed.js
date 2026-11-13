@@ -28,7 +28,9 @@ function prepararUsuario({ password, ...usuario }) {
 // Un evento puede traer "fechaRelativa" en vez de "fecha": { "dias": 0, "hora": "21:00" } es hoy
 // a las 21 (hora de Buenos Aires), { "dias": 1, ... } mañana. Sirve para el evento de demostración
 // del check-in con QR, que solo se valida el día del evento: corriendo la semilla el día de la
-// prueba, ese evento siempre es "hoy". Las entradas de demostración traen códigos fijos y legibles
+// prueba, ese evento siempre es "hoy". Los eventos próximos de la cartelera también usan fechas
+// relativas, así la demo nunca muestra eventos "programados" que ya pasaron.
+// Las entradas de demostración traen códigos fijos y legibles
 // (DemoIngreso...) para encontrarlas fácil; las entradas reales reciben un código aleatorio
 function prepararEvento({ fechaRelativa, ...evento }) {
   if (!fechaRelativa) return evento;

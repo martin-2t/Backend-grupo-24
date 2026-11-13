@@ -14,6 +14,13 @@ block content
     .card
       div Eventos próximos
       .num= proximos.length
+    if verMetricas
+      .card
+        div Compras web en curso
+        .num= totalEnCurso
+      .card
+        div Compras web no concretadas
+        .num= totalNoConcretadas
 
   h3 Entradas vendidas y disponibilidad por evento
   if resumen.length === 0

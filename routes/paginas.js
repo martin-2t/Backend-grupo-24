@@ -24,6 +24,7 @@ import * as consultas from '../controllers/paginas/consultas.js';
 import * as auth from '../controllers/paginas/auth.js';
 import * as usuarios from '../controllers/paginas/usuarios.js';
 import * as checkin from '../controllers/paginas/checkin.js';
+import * as cliente from '../controllers/paginas/cliente.js';
 
 const router = express.Router();
 
@@ -70,10 +71,13 @@ router.post('/eventos/:id/finalizar', gerencia, soloSuCentroPagina(salasDelEvent
 router.post('/eventos/:id/cancelar', gerencia, soloSuCentroPagina(salasDelEvento), eventos.cancelar);
 
 // Salas. Ver: todos. Alta y baja: ADMIN. Edición: ADMIN o el REPRESENTANTE de esa sala
-router.get('/salas', salas.listar);
+// Las salas muestran datos de gestión (estado, capacidad, ocupación): el cliente no las ve.
+// Para buscar eventos de un centro tiene el filtro "Centro" de la cartelera
+const verSalas = permitirPagina('ADMIN', 'REPRESENTANTE', 'EMPLEADO', 'AUDITOR');
+router.get('/salas', verSalas, salas.listar);
 router.get('/salas/nueva', soloAdmin, salas.nuevoForm);
 router.post('/salas/nueva', soloAdmin, salas.crear);
-router.get('/salas/:id', salas.detalle);
+router.get('/salas/:id', verSalas, salas.detalle);
 router.get('/salas/:id/editar', gerencia, soloSuCentroPagina(salaDelParametro), salas.editarForm);
 router.post('/salas/:id/editar', gerencia, soloSuCentroPagina(salaDelParametro), salas.actualizar);
 router.post('/salas/:id/estado', soloAdmin, salas.cambiarEstado);
@@ -117,5 +121,15 @@ const puerta = permitirPagina('EMPLEADO', 'REPRESENTANTE');
 router.get('/checkin', puerta, checkin.buscar);
 router.get('/checkin/:codigo', puerta, soloSuCentroPagina(salaDeLaEntradaPorCodigo), checkin.mostrar);
 router.post('/checkin/:codigo', puerta, soloSuCentroPagina(salaDeLaEntradaPorCodigo), checkin.validar);
+
+// Compra web y "Mis entradas": solo el CLIENTE, y cada uno sobre lo suyo (lo controla cada
+// controlador: una compra o entrada ajena responde "no encontrada")
+const soloCliente = permitirPagina('CLIENTE');
+router.post('/compras', soloCliente, cliente.crearCompra);
+router.get('/compras/:compraId', soloCliente, cliente.mostrarCompra);
+router.post('/compras/:compraId/pagar', soloCliente, cliente.pagarCompra);
+router.post('/compras/:compraId/cancelar', soloCliente, cliente.cancelarCompra);
+router.get('/mis-entradas', soloCliente, cliente.misEntradas);
+router.get('/mis-entradas/:id', soloCliente, cliente.miEntrada);
 
 export default router;

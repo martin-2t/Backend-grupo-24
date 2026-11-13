@@ -3,7 +3,7 @@
 // envía en una cookie httpOnly y también en el cuerpo de la respuesta (para probar con
 // Authorization: Bearer).
 import * as usuariosModel from '../../models/usuarios.js';
-import * as clientesModel from '../../models/clientes.js';
+import * as entradasModel from '../../models/entradas.js';
 import { generarToken, guardarCookie, borrarCookie } from '../../config/jwt.js';
 import { autenticarCredenciales } from '../../config/passport.js';
 
@@ -56,7 +56,8 @@ function yo(req, res) {
 // GET /auth/mis-entradas: las entradas del cliente logueado
 async function misEntradas(req, res, next) {
   try {
-    res.status(200).json(await clientesModel.entradasDelCliente(req.usuario.clienteId));
+    //Solo sus entradas reales: las compras en curso o no concretadas no son entradas para él
+    res.status(200).json(await entradasModel.entradasVisiblesDelCliente(req.usuario.clienteId));
   } catch (error) {
     next(error);
   }

@@ -46,7 +46,7 @@ async function detalle(req, res, next) {
     const cliente = await clientesModel.getById(req.params.id);
     if (!cliente) return next();
 
-    const entradas = await clientesModel.entradasDelCliente(cliente.id);
+    const entradas = entradasModel.visiblesPara(req.usuario.rol, await clientesModel.entradasDelCliente(cliente.id));
     // enriquecerEntrada puede ser async: Promise.all espera a que terminen todas
     const enriquecidas = await Promise.all(entradas.map(enriquecerEntrada));
     const { vigentes } = await entradasModel.contarPorEstado(entradas);

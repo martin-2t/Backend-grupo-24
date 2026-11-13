@@ -25,19 +25,30 @@ const entradaSchema = new mongoose.Schema(
       required: [true, 'El precio es obligatorio.'],
       min: [0, 'El precio no puede ser negativo.'],
     },
-    // USADA: la entrada ya se validó en el ingreso al evento.
-    // VENCIDA: era una reserva y no se confirmó el pago a tiempo
+    // Qué representa cada estado (por cómo creció la app, todo vive en la misma entidad):
+    //  - VALIDA: entrada vendida. USADA: ya se validó en el ingreso al evento.
+    //  - CANCELADA: anulada por fuerza mayor (se canceló el evento o la anuló la boletería).
+    //  - RESERVADA: reserva de boletería, "te guardo el lugar y pagás cuando vengas" (no vence).
+    //  - RETENIDA: lugar apartado mientras un cliente completa una compra web. No es una entrada
+    //    todavía: dura RETENCION_MINUTOS y la ven solo el ADMIN y el AUDITOR.
+    //  - VENCIDA: compra web que no se concretó (venció el tiempo o el cliente la canceló).
+    //    Es un dato para las métricas del negocio, no una entrada.
     estado: {
       type: String,
       enum: {
-        values: ['VALIDA', 'RESERVADA', 'CANCELADA', 'USADA', 'VENCIDA'],
-        message: 'El estado debe ser VALIDA, RESERVADA, CANCELADA, USADA o VENCIDA.',
+        values: ['VALIDA', 'RESERVADA', 'CANCELADA', 'USADA', 'RETENIDA', 'VENCIDA'],
+        message: 'El estado debe ser VALIDA, RESERVADA, CANCELADA, USADA, RETENIDA o VENCIDA.',
       },
       default: 'VALIDA',
     },
-    // Hasta cuándo se retiene el lugar de una reserva sin pagar (solo las RESERVADA lo tienen)
+    // Hasta cuándo se retiene el lugar de una compra web en curso (solo las RETENIDA lo tienen)
     venceEn: {
       type: Date,
+    },
+    // Agrupa las entradas de una misma compra web (hasta MAXIMO_POR_COMPRA): se pagan o se
+    // cancelan juntas
+    compraId: {
+      type: mongoose.Schema.Types.ObjectId,
     },
     // Código único y aleatorio que va dentro del QR. No se usa el _id porque los ObjectId son
     // en parte predecibles (llevan la fecha y un contador): alguien podría adivinar otro
@@ -60,38 +71,39 @@ const entradaSchema = new mongoose.Schema(
 const Entrada = mongoose.model('Entrada', entradaSchema);
 
 
-// ---- Reservas con vencimiento ----
-// Una reserva retiene su lugar RESERVA_MINUTOS (10 por defecto) mientras se completa el pago.
-// No hay un proceso que revise el reloj (en Vercel no queda ningún servidor corriendo): las
-// reservas atrasadas se vencen "al consultar", antes de cada lectura de entradas.
+// ---- Retenciones con vencimiento (compra web) ----
+// Mientras un cliente completa una compra, sus lugares quedan RETENIDA RETENCION_MINUTOS
+// (10 por defecto). No hay un proceso que revise el reloj (en Vercel no queda ningún servidor
+// corriendo): las retenciones atrasadas se vencen "al consultar", antes de cada lectura.
+
+const MAXIMO_POR_COMPRA = 6;
 
 // La variable se lee dentro de la función: con ES Modules, los import corren antes que dotenv
-function minutosDeReserva() {
-  return Number(process.env.RESERVA_MINUTOS) || 10;
+function minutosDeRetencion() {
+  return Number(process.env.RETENCION_MINUTOS) || 10;
 }
 
-// Pasa a VENCIDA las reservas atrasadas que cumplan el filtro y devuelve sus lugares al stock.
-// Cada una se vence con una operación atómica que exige que siga RESERVADA: si dos pedidos
-// intentan vencer la misma reserva a la vez, gana uno solo y el lugar se libera una sola vez.
-// Las reservas sin venceEn (cargadas antes de esta regla, o por la semilla) no vencen
-async function vencerReservas(filtro = {}) {
+// Pasa a VENCIDA las retenciones atrasadas que cumplan el filtro y devuelve sus lugares.
+// Cada una se vence con una operación atómica que exige que siga RETENIDA: si dos pedidos
+// intentan vencer la misma a la vez, gana uno solo y el lugar se libera una sola vez
+async function vencerRetenciones(filtro = {}) {
   const ahora = new Date();
   const atrasadas = await Entrada.find(
-    { ...filtro, estado: 'RESERVADA', venceEn: { $lt: ahora } },
+    { ...filtro, estado: 'RETENIDA', venceEn: { $lt: ahora } },
     { _id: 1, eventoId: 1 }
   );
-  for (const reserva of atrasadas) {
+  for (const retenida of atrasadas) {
     const vencida = await Entrada.findOneAndUpdate(
-      { _id: reserva._id, estado: 'RESERVADA' },
-      { $set: { estado: 'VENCIDA' } }
+      { _id: retenida._id, estado: 'RETENIDA' },
+      { $set: { estado: 'VENCIDA' }, $unset: { venceEn: 1 } }
     );
-    if (vencida) await liberarLugar(reserva.eventoId);
+    if (vencida) await liberarLugares(retenida.eventoId, 1);
   }
 }
 
 // Devuelve todas las entradas
 async function getAllEntradas() {
-  await vencerReservas();
+  await vencerRetenciones();
   return Entrada.find();
 }
 
@@ -99,15 +111,26 @@ async function getAllEntradas() {
 //no puede existir: devolvemos null (como "no encontrada") en vez de un CastError
 async function getEntradaById(id) {
   if (!mongoose.isObjectIdOrHexString(id)) return null;
-  await vencerReservas({ _id: id });
+  await vencerRetenciones({ _id: id });
   return Entrada.findById(id);
 }
 
 //Entradas de un evento en particular (todas, sin filtrar por estado)
 async function getEntradasByEvento(eventoId) {
   if (!mongoose.isObjectIdOrHexString(eventoId)) return [];
-  await vencerReservas({ eventoId });
+  await vencerRetenciones({ eventoId });
   return Entrada.find({ eventoId });
+}
+
+// ---- Qué ve cada rol ----
+// RETENIDA y VENCIDA no son entradas para nadie más que el negocio: son compras en curso o que
+// no se concretaron. El personal de los centros no las ve; el ADMIN y el AUDITOR sí (métricas)
+const SOLO_PARA_EL_NEGOCIO = ['RETENIDA', 'VENCIDA'];
+const ROLES_DEL_NEGOCIO = ['ADMIN', 'AUDITOR'];
+
+function visiblesPara(rol, entradas) {
+  if (ROLES_DEL_NEGOCIO.includes(rol)) return entradas;
+  return entradas.filter((e) => !SOLO_PARA_EL_NEGOCIO.includes(e.estado));
 }
 
 // ---- Stock único: control de sobreventa ----
@@ -120,8 +143,9 @@ async function getEntradasByEvento(eventoId) {
 // Los models Evento y Sala se piden por nombre a Mongoose (en vez de importarlos) porque
 // models/eventos.js ya importa este archivo, y así no se arma un ciclo de imports.
 
-// Una entrada USADA sigue ocupando su lugar: la persona está adentro
-const OCUPAN_LUGAR = ['VALIDA', 'RESERVADA', 'USADA'];
+// Una entrada USADA sigue ocupando su lugar (la persona está adentro), y una RETENIDA también,
+// mientras dure la compra: así nadie compra un lugar que otro está pagando
+const OCUPAN_LUGAR = ['VALIDA', 'RESERVADA', 'USADA', 'RETENIDA'];
 const SIN_LUGARES = 'No quedan lugares disponibles para este evento.';
 
 function ocupaLugar(estado) {
@@ -145,10 +169,10 @@ async function inicializarContador(eventoId) {
   );
 }
 
-// Intenta ocupar un lugar del evento. Devuelve true si lo consiguió, false si está lleno.
-// Antes vence las reservas atrasadas del evento, así sus lugares vuelven a estar disponibles
-async function ocuparLugar(eventoId) {
-  await vencerReservas({ eventoId });
+// Intenta ocupar "cantidad" lugares del evento, todos o ninguno. Devuelve true si lo consiguió.
+// Antes vence las retenciones atrasadas del evento, así sus lugares vuelven a estar disponibles
+async function ocuparLugares(eventoId, cantidad = 1) {
+  await vencerRetenciones({ eventoId });
   const Evento = mongoose.model('Evento');
   const evento = await Evento.findById(eventoId);
   if (!evento) return false;
@@ -157,36 +181,38 @@ async function ocuparLugar(eventoId) {
 
   await inicializarContador(eventoId);
 
-  // La operación atómica: si el contador ya llegó a la capacidad, el filtro no encuentra
-  // el evento, no se suma nada y devuelve null
+  // La operación atómica: "sumá N solo si todavía entran N". Si no entran, el filtro no
+  // encuentra el evento, no se suma nada y devuelve null. Dos compras simultáneas por los
+  // últimos lugares nunca se los reparten: una se lleva todos y la otra ninguno
   const ocupado = await Evento.findOneAndUpdate(
-    { _id: eventoId, lugaresOcupados: { $lt: sala.capacidad } },
-    { $inc: { lugaresOcupados: 1 } }
+    { _id: eventoId, lugaresOcupados: { $lte: sala.capacidad - cantidad } },
+    { $inc: { lugaresOcupados: cantidad } }
   );
   return ocupado !== null;
 }
 
-// Devuelve un lugar al stock (entrada cancelada o eliminada). Nunca baja de cero
-async function liberarLugar(eventoId) {
+// Devuelve "cantidad" lugares al stock (entrada cancelada, eliminada o compra no concretada).
+// La actualización con $max nunca deja el contador por debajo de cero
+async function liberarLugares(eventoId, cantidad = 1) {
+  if (cantidad < 1) return;
+  // Mongoose 9 pide confirmar explícitamente las actualizaciones con pipeline (updatePipeline)
   await mongoose.model('Evento').updateOne(
-    { _id: eventoId, lugaresOcupados: { $gt: 0 } },
-    { $inc: { lugaresOcupados: -1 } }
+    { _id: eventoId, lugaresOcupados: { $exists: true } },
+    [{ $set: { lugaresOcupados: { $max: [0, { $subtract: ['$lugaresOcupados', cantidad] }] } } }],
+    { updatePipeline: true }
   );
 }
 
-//Crea una entrada (reserva o venta directa, según el estado que le pase el controller).
-//Primero ocupa el lugar; si el evento está lleno no crea nada y devuelve null
+//Crea una entrada de boletería (venta directa o reserva, según el estado que le pase el
+//controller). Primero ocupa el lugar; si el evento está lleno no crea nada y devuelve null
 async function createEntrada({ eventoId, clienteId, precio, estado = 'VALIDA' }) {
-  if (ocupaLugar(estado) && !(await ocuparLugar(eventoId))) return null;
-
-  // Una reserva retiene el lugar solo unos minutos: después vence sola
-  const venceEn = estado === 'RESERVADA' ? new Date(Date.now() + minutosDeReserva() * 60000) : undefined;
+  if (ocupaLugar(estado) && !(await ocuparLugares(eventoId, 1))) return null;
 
   try {
-    return await Entrada.create({ eventoId, clienteId, precio, estado, venceEn, codigo: generarCodigo() });
+    return await Entrada.create({ eventoId, clienteId, precio, estado, codigo: generarCodigo() });
   } catch (error) {
     // Si la entrada no se pudo guardar (por ejemplo, un dato inválido), el lugar vuelve al stock
-    if (ocupaLugar(estado)) await liberarLugar(eventoId);
+    if (ocupaLugar(estado)) await liberarLugares(eventoId, 1);
     throw error;
   }
 }
@@ -195,7 +221,7 @@ async function createEntrada({ eventoId, clienteId, precio, estado = 'VALIDA' })
 //Si la entrada pasa a CANCELADA, su lugar vuelve al stock. El camino inverso no existe:
 //una entrada cancelada no se reactiva (lo impiden validarConfirmacion y validarCancelacion)
 async function updateEntradaById(id, data) {
-  const entrada = await getEntradaById(id); // si era una reserva atrasada, ya vuelve VENCIDA
+  const entrada = await getEntradaById(id); // si era una retención atrasada, ya vuelve VENCIDA
   if (!entrada) return null;
 
   const cambios = Object.fromEntries(
@@ -204,16 +230,16 @@ async function updateEntradaById(id, data) {
 
   const estadoLeido = entrada.estado;
   entrada.set(cambios);
-  // Al salir de RESERVADA (confirmada o cancelada), el vencimiento ya no aplica
-  if (entrada.estado !== 'RESERVADA') entrada.venceEn = undefined;
+  // Al salir de RETENIDA, el vencimiento ya no aplica
+  if (entrada.estado !== 'RETENIDA') entrada.venceEn = undefined;
   await entrada.validate();
 
   const actualizacion = entrada.$getChanges(); // solo los campos que cambiaron ($set y $unset)
   if (!Object.keys(actualizacion).length) return entrada;
 
   // Se guarda con la condición de que el estado siga siendo el que se leyó. Si en el medio
-  // otro pedido la venció o la canceló, no se pisa ese cambio: así una reserva que venció
-  // no "revive" al confirmarla, y su lugar no se libera dos veces
+  // otro pedido la venció o la canceló, no se pisa ese cambio: así una retención que venció
+  // no "revive", y su lugar no se libera dos veces
   const guardada = await Entrada.findOneAndUpdate(
     { _id: entrada._id, estado: estadoLeido },
     actualizacion,
@@ -221,7 +247,7 @@ async function updateEntradaById(id, data) {
   );
   if (!guardada) return Entrada.findById(entrada._id);
 
-  if (ocupaLugar(estadoLeido) && !ocupaLugar(guardada.estado)) await liberarLugar(guardada.eventoId);
+  if (ocupaLugar(estadoLeido) && !ocupaLugar(guardada.estado)) await liberarLugares(guardada.eventoId, 1);
   return guardada;
 }
 
@@ -232,14 +258,15 @@ async function removeEntrada(id) {
   const eliminada = await Entrada.findByIdAndDelete(id);
   if (!eliminada) return false;
 
-  if (ocupaLugar(eliminada.estado)) await liberarLugar(eliminada.eventoId);
+  if (ocupaLugar(eliminada.estado)) await liberarLugares(eliminada.eventoId, 1);
   return true;
 }
 
-//Lugares ocupados de un evento: vendidas, reservadas y usadas ocupan; canceladas y vencidas liberan
+//Lugares ocupados de un evento: vendidas, reservadas, usadas y retenidas ocupan; canceladas y
+//vencidas liberan
 async function lugaresOcupados(eventoId) {
   if (!mongoose.isObjectIdOrHexString(eventoId)) return 0;
-  await vencerReservas({ eventoId });
+  await vencerRetenciones({ eventoId });
   return Entrada.countDocuments({
     eventoId,
     estado: { $in: OCUPAN_LUGAR },
@@ -255,7 +282,7 @@ function generarCodigo() {
 
 async function getEntradaByCodigo(codigo) {
   if (!codigo || typeof codigo !== 'string') return null;
-  await vencerReservas({ codigo });
+  await vencerRetenciones({ codigo });
   return Entrada.findOne({ codigo });
 }
 
@@ -276,6 +303,10 @@ const ZONA_HORARIA = 'America/Argentina/Buenos_Aires';
 function diaLocal(fecha) {
   return new Date(fecha).toLocaleDateString('en-CA', { timeZone: ZONA_HORARIA }); // AAAA-MM-DD
 }
+// ¿El evento ya pasó? El día del evento todavía cuenta como vigente (hora de Buenos Aires)
+function eventoYaPaso(fecha, ahora = new Date()) {
+  return diaLocal(fecha) < diaLocal(ahora);
+}
 function fechaYHora(fecha) {
   return new Date(fecha).toLocaleString('es-AR', {
     timeZone: ZONA_HORARIA, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
@@ -289,7 +320,8 @@ function validarIngreso(entrada, evento, ahora = new Date()) {
     return 'Esta entrada ya ingresó el ' + fechaYHora(entrada.usadaEn) + '.';
   }
   if (entrada.estado === 'CANCELADA') return 'La entrada está cancelada.';
-  if (entrada.estado === 'VENCIDA') return 'Era una reserva y venció sin que se confirmara el pago.';
+  if (entrada.estado === 'VENCIDA') return 'Es una compra que no se concretó: no hay entrada.';
+  if (entrada.estado === 'RETENIDA') return 'Es una compra en curso: todavía no se pagó.';
   if (entrada.estado === 'RESERVADA') return 'Es una reserva sin confirmar: todavía no está pagada.';
   if (!evento || evento.estado !== 'PROGRAMADO') return 'El evento ya finalizó o fue cancelado.';
   if (diaLocal(evento.fecha) !== diaLocal(ahora)) {
@@ -339,9 +371,8 @@ async function ingresar(codigo, usuarioId) {
 
 //Transiciones válidas de una entrada. Devuelven el motivo del rechazo, o null.
 function validarConfirmacion(entrada) {
-  if (entrada.estado === 'VENCIDA') {
-    return 'La reserva venció: pasaron más de ' + minutosDeReserva() + ' minutos sin confirmar el pago.';
-  }
+  if (entrada.estado === 'RETENIDA') return 'Es una compra web en curso: la confirma el cliente al pagar.';
+  if (entrada.estado === 'VENCIDA') return 'Es una compra que no se concretó: no hay nada que confirmar.';
   if (entrada.estado !== 'RESERVADA') return 'Solo se pueden confirmar entradas en estado RESERVADA.';
   return null;
 }
@@ -349,7 +380,8 @@ function validarConfirmacion(entrada) {
 function validarCancelacion(entrada) {
   if (entrada.estado === 'CANCELADA') return 'La entrada ya estaba cancelada.';
   if (entrada.estado === 'USADA') return 'La entrada ya se usó para ingresar: no se puede cancelar.';
-  if (entrada.estado === 'VENCIDA') return 'La reserva ya venció y su lugar se liberó: no hay nada que cancelar.';
+  if (entrada.estado === 'RETENIDA') return 'Es una compra web en curso: solo el cliente puede cancelarla.';
+  if (entrada.estado === 'VENCIDA') return 'Es una compra que no se concretó: no hay nada que cancelar.';
   return null;
 }
 
@@ -362,9 +394,152 @@ async function contarPorEstado(lista) {
     usadas: entradas.filter((e) => e.estado === 'USADA').length,
     reservadas: entradas.filter((e) => e.estado === 'RESERVADA').length,
     canceladas: entradas.filter((e) => e.estado === 'CANCELADA').length,
+    // compras web: en curso y no concretadas (métricas del negocio)
+    retenidas: entradas.filter((e) => e.estado === 'RETENIDA').length,
     vencidas: entradas.filter((e) => e.estado === 'VENCIDA').length,
-    vigentes: entradas.filter((e) => !['CANCELADA', 'VENCIDA'].includes(e.estado)).length,
+    vigentes: entradas.filter((e) => !['CANCELADA', 'RETENIDA', 'VENCIDA'].includes(e.estado)).length,
   };
+}
+
+// ---- Compra web del cliente ----
+// El cliente elige cuántas entradas quiere (hasta MAXIMO_POR_COMPRA) y se le retienen los
+// lugares RETENCION_MINUTOS mientras paga. Si paga, las retenidas pasan a VALIDA y recién ahí
+// son entradas. Si cancela o se le vence el tiempo, pasan a VENCIDA y los lugares se liberan.
+// Todas las de una misma compra comparten el compraId.
+
+// Crea la compra: retiene "cantidad" lugares de forma atómica (todos o ninguno) y crea esas
+// entradas RETENIDA. Las validaciones del evento (programado, sala activa, cliente) las hace
+// antes el controller con eventosModel.validarVenta. Devuelve { compraId } o { error, status }
+async function crearCompra({ eventoId, clienteId, precio, cantidad }) {
+  const n = Number(cantidad);
+  if (!Number.isInteger(n) || n < 1 || n > MAXIMO_POR_COMPRA) {
+    return { error: `Podés comprar entre 1 y ${MAXIMO_POR_COMPRA} entradas por compra.`, status: 400 };
+  }
+
+  if (!(await ocuparLugares(eventoId, n))) {
+    const disponibles = await lugaresDisponibles(eventoId);
+    const mensaje = disponibles === 0
+      ? 'No quedan lugares disponibles para este evento.'
+      : `Solo quedan ${disponibles} lugares disponibles.`;
+    return { error: mensaje, status: 400 };
+  }
+
+  const compraId = new mongoose.Types.ObjectId();
+  const venceEn = new Date(Date.now() + minutosDeRetencion() * 60000);
+  const retenidas = Array.from({ length: n }, () => ({
+    eventoId, clienteId, precio, estado: 'RETENIDA', venceEn, compraId, codigo: generarCodigo(),
+  }));
+  try {
+    await Entrada.insertMany(retenidas);
+  } catch (error) {
+    await liberarLugares(eventoId, n); // si no se pudieron guardar, los lugares vuelven
+    throw error;
+  }
+  return { compraId: String(compraId) };
+}
+
+// Lugares que quedan libres en el evento (capacidad de la sala menos los ocupados)
+async function lugaresDisponibles(eventoId) {
+  const evento = await mongoose.model('Evento').findById(eventoId);
+  if (!evento) return 0;
+  const sala = await mongoose.model('Sala').findById(evento.salaId);
+  if (!sala) return 0;
+  return Math.max(sala.capacidad - (await lugaresOcupados(eventoId)), 0);
+}
+
+// La compra de un cliente: sus entradas y en qué situación está. Devuelve null si no existe o
+// si es de otro cliente (para no revelar compras ajenas). estado: EN_CURSO, PAGADA o VENCIDA
+async function getCompra(compraId, clienteId) {
+  if (!mongoose.isObjectIdOrHexString(compraId)) return null;
+  await vencerRetenciones({ compraId });
+  const entradas = await Entrada.find({ compraId, clienteId });
+  if (!entradas.length) return null;
+
+  let estado = 'VENCIDA';
+  if (entradas.some((e) => e.estado === 'RETENIDA')) estado = 'EN_CURSO';
+  else if (entradas.some((e) => ['VALIDA', 'USADA'].includes(e.estado))) estado = 'PAGADA';
+
+  return {
+    compraId: String(compraId),
+    estado,
+    eventoId: entradas[0].eventoId,
+    cantidad: entradas.length,
+    precio: entradas[0].precio,
+    total: entradas.reduce((suma, e) => suma + e.precio, 0),
+    venceEn: entradas[0].venceEn,
+    entradas,
+  };
+}
+
+// Paga la compra (el pago es simulado): las retenidas pasan a VALIDA. updateMany solo toca las
+// que siguen RETENIDA, así que una compra vencida no "revive". Devuelve { compra } o { error, status }
+async function pagarCompra(compraId, clienteId) {
+  const compra = await getCompra(compraId, clienteId); // vence la compra si estaba atrasada
+  if (!compra) return { error: 'No encontramos esa compra.', status: 404 };
+  if (compra.estado === 'PAGADA') return { error: 'Esta compra ya está pagada.', status: 409 };
+  if (compra.estado === 'VENCIDA') {
+    return { error: 'La compra no se concretó: venció el tiempo para pagar o se canceló.', status: 409 };
+  }
+
+  await Entrada.updateMany(
+    { compraId, clienteId, estado: 'RETENIDA' },
+    { $set: { estado: 'VALIDA' }, $unset: { venceEn: 1 } }
+  );
+  return { compra: await getCompra(compraId, clienteId) };
+}
+
+// Cancela la compra en curso: las retenidas pasan a VENCIDA (compra no concretada) y sus
+// lugares se liberan en el acto. Se liberan tantos como retenidas cambió updateMany, así cada
+// lugar se libera una sola vez aunque la compra venza en ese mismo instante
+async function cancelarCompra(compraId, clienteId) {
+  const compra = await getCompra(compraId, clienteId);
+  if (!compra) return { error: 'No encontramos esa compra.', status: 404 };
+  if (compra.estado !== 'EN_CURSO') return { error: 'Esta compra ya no está en curso.', status: 409 };
+
+  const resultado = await Entrada.updateMany(
+    { compraId, clienteId, estado: 'RETENIDA' },
+    { $set: { estado: 'VENCIDA' }, $unset: { venceEn: 1 } }
+  );
+  await liberarLugares(compra.eventoId, resultado.modifiedCount);
+  return { compra: await getCompra(compraId, clienteId) };
+}
+
+// ---- Mis entradas (lo que ve el cliente) ----
+
+// Las entradas del cliente, sin las compras en curso ni las no concretadas (no son entradas
+// para él) ni las reservas de boletería. Su ficha completa la ve el personal con
+// clientesModel.entradasDelCliente
+async function entradasVisiblesDelCliente(clienteId) {
+  if (!mongoose.isObjectIdOrHexString(clienteId)) return [];
+  await vencerRetenciones({ clienteId });
+  return Entrada.find({ clienteId, estado: { $in: ['VALIDA', 'USADA', 'CANCELADA'] } });
+}
+
+// Ordena las entradas del cliente en próximas e historial. Función pura: recibe las entradas,
+// sus eventos (indexados por id) y la hora actual, así se prueba sin base de datos.
+//  - Próximas: VALIDA de eventos programados que todavía no pasaron (el día del evento cuenta).
+//  - Historial: USADA, CANCELADA (con el motivo si se canceló el evento) y VALIDA de eventos
+//    que ya pasaron, que se marcan como NO_UTILIZADA.
+function agruparEntradasDelCliente(entradas, eventosPorId, ahora = new Date()) {
+  const proximas = [];
+  const historial = [];
+  for (const entrada of entradas) {
+    const evento = eventosPorId[String(entrada.eventoId)] || null;
+    const fecha = evento ? new Date(evento.fecha) : new Date(0);
+    if (entrada.estado === 'VALIDA') {
+      const vigente = evento && evento.estado === 'PROGRAMADO' && !eventoYaPaso(fecha, ahora);
+      if (vigente) proximas.push({ entrada, evento, situacion: 'VIGENTE', fecha });
+      else historial.push({ entrada, evento, situacion: 'NO_UTILIZADA', fecha });
+    } else if (entrada.estado === 'USADA') {
+      historial.push({ entrada, evento, situacion: 'USADA', fecha });
+    } else if (entrada.estado === 'CANCELADA') {
+      const situacion = evento && evento.estado === 'CANCELADO' ? 'EVENTO_CANCELADO' : 'CANCELADA';
+      historial.push({ entrada, evento, situacion, fecha });
+    }
+  }
+  proximas.sort((a, b) => a.fecha - b.fecha); // la más cercana primero
+  historial.sort((a, b) => b.fecha - a.fecha); // la más reciente primero
+  return { proximas, historial };
 }
 
 // El precio de una entrada: número, y nunca negativo
@@ -381,7 +556,18 @@ export {
   Entrada,
   SIN_LUGARES,
   recalcularLugares,
-  minutosDeReserva,
+  MAXIMO_POR_COMPRA,
+  minutosDeRetencion,
+  visiblesPara,
+  crearCompra,
+  getCompra,
+  pagarCompra,
+  cancelarCompra,
+  lugaresDisponibles,
+  entradasVisiblesDelCliente,
+  agruparEntradasDelCliente,
+  eventoYaPaso,
+  fechaYHora,
   getEntradaByCodigo,
   asegurarCodigo,
   validarIngreso,

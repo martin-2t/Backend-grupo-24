@@ -445,6 +445,8 @@ td a.btn.baja { color: #454b4b; }
 /* ------------------------------------------------------------------ */
 .badge.USADA { background: #5b6b73; }
 .badge.VENCIDA { background: #8a6d3b; }
+.badge.RETENIDA { background: #6c7a89; }
+.badge.PASADO { background: #b06f1e; margin-left: 6px; }
 
 .qr-ingreso { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; margin-bottom: 18px; }
 .qr-ingreso img { background: #fff; padding: 8px; border: 1px solid #d7dcdc; border-radius: 8px; }
@@ -606,3 +608,26 @@ form.filtros input {
 
   table.apilada td.acciones { white-space: normal; }
 }
+/* ------------------------------------------------------------------ */
+/* Compra web y Mis entradas (cliente)                                 */
+/* ------------------------------------------------------------------ */
+.compra-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.compra-form select { padding: 7px 9px; border: 1px solid #cfd8d8; border-radius: 5px; font-family: inherit; }
+.compra-cerrada { font-weight: 600; color: #a13d1e; margin: 0; }
+.resumen-compra td.total { font-weight: 700; font-size: 1.05rem; }
+.reloj-compra { background: #fff4e5; border-left: 4px solid #d99a2b; padding: 10px 14px; border-radius: 6px; }
+
+.entradas-compradas, .mis-entradas { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 18px; }
+.entrada-qr { background: #fff; border-radius: 10px; padding: 14px; text-align: center; box-shadow: 0 2px 6px rgba(15, 76, 76, 0.08); }
+.entrada-numero { font-weight: 600; margin-bottom: 6px; color: #0f4c4c; }
+.mi-entrada { display: flex; gap: 14px; align-items: center; background: #fff; border-radius: 10px; padding: 12px 16px;
+  box-shadow: 0 2px 6px rgba(15, 76, 76, 0.08); color: inherit; text-decoration: none; flex: 1 1 300px; min-width: 0; }
+.mi-entrada:hover { box-shadow: 0 4px 12px rgba(15, 76, 76, 0.18); }
+.qr-grande { background: #fff; border-radius: 12px; padding: 20px; text-align: center; max-width: 360px;
+  box-shadow: 0 2px 6px rgba(15, 76, 76, 0.08); }
+.qr-grande img { max-width: 100%; height: auto; }
+.aviso-entrada { background: #fff; border-left: 4px solid #6b7f83; padding: 12px 16px; border-radius: 6px; }
+
+.badge.SIT-USADA { background: #5b6b73; }
+.badge.SIT-CANCELADA, .badge.SIT-EVENTO_CANCELADO { background: #d1483f; }
+.badge.SIT-NO_UTILIZADA { background: #8d9396; }

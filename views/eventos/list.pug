@@ -7,11 +7,16 @@ block content
   - const esPersonal = rol !== null && rol !== 'CLIENTE'
   //- El ADMIN opera sobre todo; el resto del personal, solo sobre la sala donde trabaja
   - const esMiSala = (salaId) => esAdmin || String(salaId) === String(usuario.salaId)
+  - const esCliente = rol === 'CLIENTE'
 
-  h2 Eventos
+  h2= esCliente ? 'Cartelera' : 'Eventos'
 
+  //- Solo gerencia crea eventos. (El botón había quedado fuera de este if, dentro del
+  //- formulario de filtros, por un error de indentación al agregar los filtros.)
   if esGerencia
     .barra
+      a.btn(href="/panel/eventos/nuevo") + Nuevo evento
+
   form.filtros(method="GET" action="/panel/eventos")
     label(for="desde") Desde
     input#desde(type="date" name="desde" value=filtros.desde)
@@ -27,37 +32,66 @@ block content
 
     button.btn.secundario(type="submit") Filtrar
     a.btn.secundario(href="/panel/eventos") Limpiar
-      a.btn(href="/panel/eventos/nuevo") + Nuevo evento
-      
 
-  table
-    thead
-      tr
-        th Nombre
-        th Sala
-        th Fecha
-        th Precio
-        th Disponibles / Capacidad
-        th Estado
-        th Acciones
-    tbody
-      if eventos.length === 0
+  //- El cliente ve la cartelera: solo eventos por venir, sin datos internos (capacidad, estado)
+  //- y con un acceso directo a comprar. El personal ve la tabla de gestión completa.
+  if esCliente
+    table
+      thead
         tr
-          td.vacio(colspan="7") No hay eventos para mostrar.
-      each evento in eventos
+          th Evento
+          th Sala
+          th Fecha
+          th Precio
+          th
+      tbody
+        if eventos.length === 0
+          tr
+            td.vacio(colspan="5") No hay eventos próximos para mostrar.
+        each evento in eventos
+          tr
+            td
+              a(href="/panel/eventos/" + evento.id)= evento.nombre
+            td= evento.sala
+            td= new Date(evento.fecha).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+            td= '$' + evento.precio
+            td.acciones
+              if evento.disponibles > 0
+                a.btn.chico(href="/panel/eventos/" + evento.id) Comprar
+              else
+                span.badge.CANCELADO Agotado
+  else
+    table
+      thead
         tr
-          td
-            a(href="/panel/eventos/" + evento.id)= evento.nombre
-          td= evento.sala
-          td= new Date(evento.fecha).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hourCycle: 'h23' })
-          td= '$' + evento.precio
-          td= evento.disponibles + ' / ' + evento.capacidad
-          td
-            span.badge(class=evento.estado)= evento.estado
-          td.acciones
-            .grupo
-              a.btn.chico.secundario(href="/panel/eventos/" + evento.id) Ver
-              if esGerencia && esMiSala(evento.salaId)
-                a.btn.chico.editar(href="/panel/eventos/" + evento.id + "/editar") Editar
-              if esPersonal && esMiSala(evento.salaId) && evento.estado === 'PROGRAMADO' && evento.disponibles > 0
-                a.btn.chico(href="/panel/entradas/nueva?evento=" + evento.id) Vender
+          th Nombre
+          th Sala
+          th Fecha
+          th Precio
+          th Disponibles / Capacidad
+          th Estado
+          th Acciones
+      tbody
+        if eventos.length === 0
+          tr
+            td.vacio(colspan="7") No hay eventos para mostrar.
+        each evento in eventos
+          tr
+            td
+              a(href="/panel/eventos/" + evento.id)= evento.nombre
+            td= evento.sala
+            td= new Date(evento.fecha).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hourCycle: 'h23' })
+            td= '$' + evento.precio
+            td= evento.disponibles + ' / ' + evento.capacidad
+            td
+              span.badge(class=evento.estado)= evento.estado
+              //- Nada finaliza un evento solo: si ya pasó y sigue programado, gerencia tiene que cerrarlo
+              if evento.yaPaso && evento.estado === 'PROGRAMADO'
+                span.badge.PASADO Ya pasó, sin finalizar
+            td.acciones
+              .grupo
+                a.btn.chico.secundario(href="/panel/eventos/" + evento.id) Ver
+                if esGerencia && esMiSala(evento.salaId)
+                  a.btn.chico.editar(href="/panel/eventos/" + evento.id + "/editar") Editar
+                if esPersonal && esMiSala(evento.salaId) && evento.estado === 'PROGRAMADO' && evento.disponibles > 0
+                  a.btn.chico(href="/panel/entradas/nueva?evento=" + evento.id) Vender

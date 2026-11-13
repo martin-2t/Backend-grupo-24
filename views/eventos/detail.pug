@@ -21,8 +21,12 @@ block content
     div
       h2= evento.nombre
       p.subtitulo
-        span.badge(class=evento.estado)= evento.estado
-        span  · #{evento.sala} · #{new Date(evento.fecha).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hourCycle: 'h23' })}
+        if rol !== 'CLIENTE'
+          span.badge(class=evento.estado)= evento.estado
+          if yaPaso && evento.estado === 'PROGRAMADO'
+            span.badge.PASADO Ya pasó, sin finalizar
+          span  · 
+        span #{evento.sala} · #{new Date(evento.fecha).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hourCycle: 'h23' })}
     .acciones
       if puedeGestionar
         a.btn.editar(href="/panel/eventos/" + evento.id + "/editar") Editar
@@ -36,16 +40,19 @@ block content
         form.enlinea(method="POST" action="/panel/eventos/" + evento.id + "/cancelar" onsubmit="return confirm('" + avisoCancelar + "')")
           button.btn.baja(type="submit") Cancelar evento
 
+  //- El cliente no ve los números de gestión (capacidad y ocupación): solo el precio.
+  //- La disponibilidad le llega en el bloque de compra ("hasta N entradas" o "Agotado")
   .cards
-    .card
-      div Capacidad de sala
-      .num= evento.capacidad
-    .card
-      div Lugares ocupados
-      .num= evento.ocupados
-    .card
-      div Disponibles
-      .num= evento.disponibles
+    if rol !== 'CLIENTE'
+      .card
+        div Capacidad de sala
+        .num= evento.capacidad
+      .card
+        div Lugares ocupados
+        .num= evento.ocupados
+      .card
+        div Disponibles
+        .num= evento.disponibles
     .card
       div Precio
       .num= '$' + evento.precio
@@ -54,6 +61,22 @@ block content
     .panel-dato
       h3 Descripción
       p= evento.descripcion
+
+  //- Compra web: solo el CLIENTE. "compra" lo arma el controller (cuántas puede o por qué no)
+  if compra
+    .panel-dato.compra-evento
+      h3 Comprar entradas
+      if compra.maximo
+        form.compra-form(method="POST" action="/panel/compras")
+          input(type="hidden" name="eventoId" value=evento.id)
+          label(for="cantidad") Cantidad
+          select#cantidad(name="cantidad")
+            - for (var n = 1; n <= compra.maximo; n++)
+              option(value=n)= n
+          button.btn(type="submit") Comprar
+        p.nota= 'Hasta ' + compra.maximo + ' entradas por compra, a $' + evento.precio + ' cada una. Al continuar te guardamos los lugares unos minutos mientras pagás.'
+      else
+        p.compra-cerrada= compra.motivo
 
   //- Las entradas muestran el nombre de cada comprador: solo las ve el personal de este centro
   if puedeOperar
@@ -88,4 +111,4 @@ block content
                       button.btn.chico.baja(type="submit") Cancelar
 
   p.volver
-    a(href="/panel/eventos") ← Volver a eventos
+    a(href="/panel/eventos")= rol === 'CLIENTE' ? '← Volver a la cartelera' : '← Volver a eventos'
