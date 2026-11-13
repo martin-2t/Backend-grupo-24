@@ -12,12 +12,14 @@ beforeAll(conectar);
 afterEach(limpiar);
 afterAll(desconectar);
 
-// Prepara un evento en una sala de 10 lugares y un ADMIN que vende en boletería
+// Prepara un evento en una sala de 10 lugares, un EMPLEADO de esa sala que vende en boletería y
+// un ADMIN (que puede cancelar el evento por fuerza mayor, pero no vende)
 async function escenario() {
   const sala = await crearSala({ capacidad: 10 });
   const evento = await crearEvento(sala.id);
   const cliente = await crearCliente();
-  const { token } = await crearUsuarioConToken({ rol: 'ADMIN' });
+  const { token } = await crearUsuarioConToken({ rol: 'EMPLEADO', salaId: sala.id });
+  const { token: tokenAdmin } = await crearUsuarioConToken({ rol: 'ADMIN' });
 
   // Una venta: POST /entradas con el token en el header Authorization
   const vender = () =>
@@ -26,7 +28,7 @@ async function escenario() {
       .set('Authorization', `Bearer ${token}`)
       .send({ eventoId: evento.id, clienteId: cliente.id });
 
-  return { sala, evento, cliente, token, vender };
+  return { sala, evento, cliente, token, tokenAdmin, vender };
 }
 
 // Entradas que ocupan lugar (vendidas o reservadas) en la base
@@ -88,12 +90,12 @@ describe('Control de sobreventa', () => {
   });
 
   test('cancelar el evento devuelve todos sus lugares al stock', async () => {
-    const { evento, token, vender } = await escenario();
+    const { evento, tokenAdmin, vender } = await escenario();
     for (let i = 0; i < 4; i++) await vender();
 
     const cancelacion = await request(app)
       .put(`/eventos/${evento.id}/cancelar`)
-      .set('Authorization', `Bearer ${token}`);
+      .set('Authorization', `Bearer ${tokenAdmin}`);
     expect(cancelacion.status).toBe(200);
 
     const actualizado = await Evento.findById(evento.id);

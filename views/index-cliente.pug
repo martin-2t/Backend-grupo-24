@@ -1,0 +1,35 @@
+extends layout
+
+//- Inicio del cliente: lo que le sirve a quien compra entradas, sin números de gestión
+block content
+  h2= 'Hola, ' + usuario.nombre
+
+  .barra
+    a.btn(href="/panel/eventos") Ver la cartelera
+    a.btn.secundario(href="/panel/mis-entradas")= misProximas ? 'Mis entradas (' + misProximas + (misProximas === 1 ? ' próxima)' : ' próximas)') : 'Mis entradas'
+
+  h3 Próximos eventos
+  if proximos.length === 0
+    p.vacio No hay eventos próximos por ahora.
+  else
+    table
+      thead
+        tr
+          th Evento
+          th Sala
+          th Fecha
+          th Precio
+          th
+      tbody
+        each evento in proximos
+          tr
+            td
+              a(href="/panel/eventos/" + evento.id)= evento.nombre
+            td= evento.sala
+            td= new Date(evento.fecha).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+            td= '$' + evento.precio
+            td.acciones
+              if evento.disponibles > 0
+                a.btn.chico(href="/panel/eventos/" + evento.id) Comprar
+              else
+                span.badge.CANCELADO Agotado

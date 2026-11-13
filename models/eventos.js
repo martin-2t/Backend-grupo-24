@@ -79,6 +79,34 @@ async function getEventosProximos() {
   return Evento.find({ estado: 'PROGRAMADO', fecha: { $gt: new Date() } }).sort({ fecha: 1 });
 }
 
+//Valida los filtros de la cartelera. Las fechas llegan como "AAAA-MM-DD".
+//Devuelve el mensaje de error, o null si están bien.
+function validarFiltros({ desde, hasta, salaId } = {}) {
+  const esFecha = (f) =>
+    //expresión regular .test(f) pregunta si f cumple ese patrón
+    /^\d{4}-\d{2}-\d{2}$/.test(f) && !Number.isNaN(new Date(`${f}T00:00:00-03:00`).getTime());
+
+  if (desde && !esFecha(desde)) return 'La fecha "desde" debe tener el formato AAAA-MM-DD.';
+  if (hasta && !esFecha(hasta)) return 'La fecha "hasta" debe tener el formato AAAA-MM-DD.';
+  if (desde && hasta && desde > hasta) return 'La fecha "desde" no puede ser posterior a "hasta".';
+  if (salaId && !mongoose.isObjectIdOrHexString(salaId)) return 'El campo "salaId" no es un ID de sala válido.';
+  return null;
+}
+
+//READ | Eventos filtrados por rango de fechas y/o sala. Los tres filtros son
+//opcionales. Las fechas se toman en hora argentina (UTC-3) y
+//"hasta" incluye todo ese día completo. Se devuelven ordenados por fecha, el más cercano primero.
+async function getEventosFiltrados({ desde, hasta, salaId } = {}) {
+  const filtro = {};
+  if (desde || hasta) {
+    filtro.fecha = {};
+    if (desde) filtro.fecha.$gte = new Date(`${desde}T00:00:00-03:00`);
+    if (hasta) filtro.fecha.$lte = new Date(`${hasta}T23:59:59.999-03:00`);
+  }
+  if (salaId) filtro.salaId = salaId;
+  return Evento.find(filtro).sort({ fecha: 1 });
+}
+
 // CREATE | El _id lo genera MongoDB y el estado arranca en PROGRAMADO (default del Schema)
 async function createEvento({ nombre, descripcion, fecha, salaId, precio }) {
   return Evento.create({ nombre, descripcion, fecha, salaId, precio });
@@ -105,18 +133,31 @@ async function finalizarEvento(id) {
 
 // Entradas que se arrastrarían si se cancelara este evento. La usan tanto el aviso
 // de confirmación como la cancelación misma, para que digan siempre lo mismo.
+// Solo cuenta entradas reales: las compras web en curso (RETENIDA) no son entradas todavía.
 async function entradasQueSeCancelan(id) {
   const entradas = await entradasModel.getEntradasByEvento(id);
-  // Las canceladas y las reservas vencidas ya no ocupan lugar: no hay nada que arrastrar
-  return entradas.filter((e) => !['CANCELADA', 'VENCIDA'].includes(e.estado));
+  // Las canceladas y las compras no concretadas ya no ocupan lugar: no hay nada que arrastrar
+  return entradas.filter((e) => !['CANCELADA', 'VENCIDA', 'RETENIDA'].includes(e.estado));
 }
 
 // DELETE lógico | Cancela el evento y arrastra sus entradas: no puede quedar una
-// entrada válida de algo que no va a suceder.
+// entrada válida de algo que no va a suceder. Las compras web en curso no se cancelan:
+// pasan a VENCIDA (compra no concretada), porque nunca llegaron a ser entradas
 async function cancelarEvento(id) {
   const aCancelar = await entradasQueSeCancelan(id);
-  await Promise.all(aCancelar.map((e) => entradasModel.updateEntradaById(e.id, { estado: 'CANCELADA' })));
+  const enCurso = (await entradasModel.getEntradasByEvento(id)).filter((e) => e.estado === 'RETENIDA');
+  await Promise.all([
+    ...aCancelar.map((e) => entradasModel.updateEntradaById(e.id, { estado: 'CANCELADA' })),
+    ...enCurso.map((e) => entradasModel.updateEntradaById(e.id, { estado: 'VENCIDA' })),
+  ]);
   return updateEventoById(id, { estado: 'CANCELADO' });
+}
+
+// Eventos sobre los que un usuario puede consultar ventas: el personal de un centro, solo los de
+// su centro; el resto (ADMIN y AUDITOR), todos
+function eventosParaUsuario(usuario, eventos) {
+  if (!['EMPLEADO', 'REPRESENTANTE'].includes(usuario.rol)) return eventos;
+  return eventos.filter((e) => String(e.salaId) === String(usuario.salaId));
 }
 
 // ---- Reglas que cruzan entidades ----
@@ -242,6 +283,7 @@ async function validarVenta(eventoId, clienteId) {
 
 export {
   Evento,
+  eventosParaUsuario,
   getAllEventos,
   contarEventos,
   getEventoById,
@@ -261,4 +303,6 @@ export {
   validarCapacidadDeSala,
   validar,
   validarVenta,
+  getEventosFiltrados,
+  validarFiltros,
 };

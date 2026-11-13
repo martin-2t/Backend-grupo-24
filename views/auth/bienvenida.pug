@@ -22,4 +22,8 @@ block content
       | y se cierra con el botón "Salir".
 
   .barra
-    a.btn(href="/panel") Ir al panel
+    if usuario.rol === 'CLIENTE'
+      a.btn(href="/panel/eventos") Ver la cartelera
+      a.btn.secundario(href="/panel/mis-entradas") Mis entradas
+    else
+      a.btn(href="/panel") Ir al panel

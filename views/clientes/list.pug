@@ -3,7 +3,7 @@ extends ../layout
 block content
   h2 Clientes
 
-  if !soloLectura
+  if operaBoleteria
     .barra
       a.btn(href="/panel/clientes/nuevo") + Nuevo cliente
 
@@ -29,8 +29,9 @@ block content
           td= cliente.email
           td= cliente.telefono
           td.acciones
-            if !soloLectura
-              .grupo
+            .grupo
+              if operaBoleteria
                 a.btn.chico.editar(href="/panel/clientes/" + cliente.id + "/editar") Editar
+              if usuario.rol === 'ADMIN'
                 form.enlinea(method="POST" action="/panel/clientes/" + cliente.id + "/eliminar" onsubmit="return confirm('¿Eliminar este cliente?')")
                   button.btn.chico.peligro(type="submit") Eliminar

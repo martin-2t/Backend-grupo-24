@@ -6,12 +6,15 @@ block content
     div
       h2= cliente.nombre + ' ' + cliente.apellido
       p.subtitulo= cliente.email + (cliente.telefono ? ' · ' + cliente.telefono : '')
-    if !soloLectura
+    //- La boletería edita y vende; el ADMIN solo hace el borrado físico (mantenimiento de datos)
+    if operaBoleteria || usuario.rol === 'ADMIN'
       .acciones
-        a.btn.editar(href="/panel/clientes/" + cliente.id + "/editar") Editar
-        a.btn(href="/panel/entradas/nueva") Vender entrada
-        form.enlinea(method="POST" action="/panel/clientes/" + cliente.id + "/eliminar" onsubmit="return confirm('¿Eliminar este cliente? La acción no se puede deshacer.')")
-          button.btn.peligro(type="submit") Eliminar cliente
+        if operaBoleteria
+          a.btn.editar(href="/panel/clientes/" + cliente.id + "/editar") Editar
+          a.btn(href="/panel/entradas/nueva") Vender entrada
+        if usuario.rol === 'ADMIN'
+          form.enlinea(method="POST" action="/panel/clientes/" + cliente.id + "/eliminar" onsubmit="return confirm('¿Eliminar este cliente? La acción no se puede deshacer.')")
+            button.btn.peligro(type="submit") Eliminar cliente
 
   .cards
     .card

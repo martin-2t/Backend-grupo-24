@@ -11,10 +11,18 @@ html(lang="es")
   body
     header.top
       h1 Urbana Cult
+      input#menu-toggle.menu-check(type="checkbox" aria-hidden="true")
+      label.menu-boton(for="menu-toggle" aria-label="Abrir menú") ☰
       nav.main
         a(href="/panel") Inicio
-        a(href="/panel/eventos") Eventos
-        a(href="/panel/salas") Salas
+        if usuario && usuario.rol === 'CLIENTE'
+          a(href="/panel/eventos") Cartelera
+        else
+          a(href="/panel/eventos") Eventos
+          if usuario && ['EMPLEADO', 'REPRESENTANTE'].includes(usuario.rol)
+            a(href="/panel/salas") Mi centro
+          else
+            a(href="/panel/salas") Salas
         if usuario && usuario.rol !== 'CLIENTE'
           a(href="/panel/clientes") Clientes
           a(href="/panel/entradas") Entradas
@@ -23,6 +31,8 @@ html(lang="es")
           a(href="/panel/usuarios") Usuarios
         if usuario && ['EMPLEADO', 'REPRESENTANTE'].includes(usuario.rol)
           a(href="/panel/checkin") Ingreso
+        if usuario && usuario.rol === 'CLIENTE'
+          a(href="/panel/mis-entradas") Mis entradas
         if usuario
           span #{usuario.nombre} (#{usuario.rol})
           form(method="POST" action="/panel/logout" style="display:inline")
@@ -37,3 +47,18 @@ html(lang="es")
       block content
     if usuario
       include asistente
+
+    script.
+      //En pantallas chicas las tablas de listado se muestran como tarjetas
+      document.querySelectorAll('table').forEach(function (t) {
+        var ths = t.querySelectorAll('thead th');
+        if (!ths.length) return;
+        t.classList.add('apilada');
+        t.querySelectorAll('tbody tr').forEach(function (tr) {
+          Array.prototype.forEach.call(tr.children, function (td, i) {
+            if (ths[i] && !td.hasAttribute('colspan')) {
+              td.setAttribute('data-label', ths[i].textContent.trim());
+            }
+          });
+        });
+      });

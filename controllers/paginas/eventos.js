@@ -2,12 +2,31 @@
 import * as eventosModel from '../../models/eventos.js';
 import * as entradasModel from '../../models/entradas.js';
 import { volver, volverConError, enriquecerEvento, enriquecerEntrada, salasElegibles } from './comunes.js';
+import * as salasModel from '../../models/salas.js';
 
 async function listar(req, res, next) {
   try {
+    //Filtros de la cartelera: desde, hasta y centro
+    const { desde = '', hasta = '', salaId = '' } = req.query;
+    const filtros = { desde, hasta, salaId };
+    const error = eventosModel.validarFiltros(filtros);
+    //Si algún filtro es inválido, avisamos y mostramos todos los eventos
+    const todos = await eventosModel.getEventosFiltrados(error ? {} : filtros);
+    // El cliente ve la cartelera: solo eventos programados que todavía no pasaron.
+    // El personal ve todos, y los que ya pasaron sin finalizar llevan una marca
+    const esCliente = req.usuario.rol === 'CLIENTE';
+    const eventos = esCliente
+      ? todos.filter((e) => e.estado === 'PROGRAMADO' && !entradasModel.eventoYaPaso(e.fecha))
+      : todos;
+
     res.render('eventos/list', {
-      titulo: 'Eventos',
-      eventos: await Promise.all((await eventosModel.getAllEventos()).map(enriquecerEvento)),
+      titulo: esCliente ? 'Cartelera' : 'Eventos',
+      eventos: await Promise.all(
+        eventos.map(async (e) => ({ ...(await enriquecerEvento(e)), yaPaso: entradasModel.eventoYaPaso(e.fecha) }))
+      ),
+      salas: await salasModel.getAllSalas(),
+      filtros,
+      alerta: error,
     });
   } catch (error) {
     next(error);
@@ -57,6 +76,17 @@ async function crear(req, res, next) {
   }
 }
 
+// Para el CLIENTE: hasta cuántas entradas puede comprar (MAXIMO_POR_COMPRA, o menos si quedan
+// menos lugares), o por qué no puede comprar. El servidor vuelve a validar todo al comprar
+function opcionesDeCompra(evento) {
+  if (evento.estado !== 'PROGRAMADO' || evento.salaEstado !== 'ACTIVA') {
+    return { motivo: 'La venta de entradas para este evento está cerrada.' };
+  }
+  if (entradasModel.eventoYaPaso(evento.fecha)) return { motivo: 'Este evento ya pasó.' };
+  if (evento.disponibles <= 0) return { motivo: 'Agotado' };
+  return { maximo: Math.min(entradasModel.MAXIMO_POR_COMPRA, evento.disponibles) };
+}
+
 async function detalle(req, res, next) {
   try {
     const evento = await eventosModel.getEventoById(req.params.id);
@@ -69,11 +99,16 @@ async function detalle(req, res, next) {
       ['ADMIN', 'AUDITOR'].includes(rol) ||
       (['EMPLEADO', 'REPRESENTANTE'].includes(rol) && String(evento.salaId) === String(salaId));
 
+    const enriquecido = await enriquecerEvento(evento);
     res.render('eventos/detail', {
       titulo: evento.nombre,
-      evento: await enriquecerEvento(evento),
+      evento: enriquecido,
+      yaPaso: entradasModel.eventoYaPaso(evento.fecha),
+      compra: rol === 'CLIENTE' ? opcionesDeCompra(enriquecido) : null,
       entradas: puedeVerEntradas
-        ? await Promise.all((await entradasModel.getEntradasByEvento(evento.id)).map(enriquecerEntrada))
+        ? await Promise.all(
+          entradasModel.visiblesPara(rol, await entradasModel.getEntradasByEvento(evento.id)).map(enriquecerEntrada)
+        )
         : [],
       aArrastrar: (await eventosModel.entradasQueSeCancelan(evento.id)).length,
     });

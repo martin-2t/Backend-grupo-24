@@ -3,7 +3,7 @@ extends ../layout
 block content
   h2 Entradas
 
-  if !soloLectura
+  if operaBoleteria
     .barra
       a.btn(href="/panel/entradas/nueva") Vender entrada
 
@@ -53,9 +53,9 @@ block content
           td.acciones
             .grupo
               a.btn.chico.secundario(href="/panel/entradas/" + entrada.id) Ver
-              if !soloLectura && entrada.estado === 'RESERVADA'
+              if operaBoleteria && entrada.estado === 'RESERVADA'
                 form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/confirmar")
                   button.btn.chico(type="submit") Confirmar
-              if !soloLectura && (entrada.estado === 'VALIDA' || entrada.estado === 'RESERVADA')
+              if operaBoleteria && (entrada.estado === 'VALIDA' || entrada.estado === 'RESERVADA')
                 form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/cancelar" onsubmit="return confirm('¿Cancelar esta entrada? El lugar quedará liberado.')")
                   button.btn.chico.baja(type="submit") Cancelar

@@ -14,7 +14,10 @@ async function listar(req, res, next) {
       estado: req.query.estado || '',
     };
 
-    let entradas = await entradasModel.getAllEntradas();
+    // Las compras web en curso o no concretadas solo las ve el negocio (ADMIN y AUDITOR)
+    const delNegocio = ['ADMIN', 'AUDITOR'].includes(req.usuario.rol);
+    // El personal ve solo las entradas de su centro (ver entradasParaUsuario)
+    let entradas = await entradasModel.entradasParaUsuario(req.usuario, await entradasModel.getAllEntradas());
     if (filtros.evento) entradas = entradas.filter((e) => String(e.eventoId) === filtros.evento);
     if (filtros.cliente) entradas = entradas.filter((e) => String(e.clienteId) === filtros.cliente);
     if (filtros.estado) entradas = entradas.filter((e) => e.estado === filtros.estado);
@@ -23,9 +26,12 @@ async function listar(req, res, next) {
       titulo: 'Entradas',
       entradas: await Promise.all(entradas.map(enriquecerEntrada)),
       filtros,
-      eventos: await eventosModel.getAllEventos(),
+      // El filtro por evento ofrece solo los eventos que el usuario puede ver
+      eventos: eventosModel.eventosParaUsuario(req.usuario, await eventosModel.getAllEventos()),
       clientes: await clientesModel.getAll(),
-      estados: ['VALIDA', 'RESERVADA', 'USADA', 'VENCIDA', 'CANCELADA'],
+      estados: delNegocio
+        ? ['VALIDA', 'RESERVADA', 'USADA', 'CANCELADA', 'RETENIDA', 'VENCIDA']
+        : ['VALIDA', 'RESERVADA', 'USADA', 'CANCELADA'],
     });
   } catch (error) {
     next(error);

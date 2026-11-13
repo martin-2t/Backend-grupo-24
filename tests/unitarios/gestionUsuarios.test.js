@@ -1,7 +1,7 @@
 // Tests unitarios: reglas de quién puede gestionar a quién (models/gestionUsuarios.js).
 // Son funciones puras: reciben objetos y devuelven un resultado, así que no hace falta
 // base de datos, servidor ni token. Los usuarios son objetos comunes armados a mano.
-import { rolesCreables, puedeGestionar } from '../../models/gestionUsuarios.js';
+import { rolesCreables, puedeGestionar, filtrarYOrdenar } from '../../models/gestionUsuarios.js';
 
 const CENTRO_A = '5a1a00000000000000000001';
 const CENTRO_B = '5a1a00000000000000000002';
@@ -45,5 +45,31 @@ describe('puedeGestionar', () => {
 
   test('el AUDITOR no gestiona a nadie, aunque vea a todos', () => {
     expect(puedeGestionar(auditor, empleadoA)).toBe(false);
+  });
+});
+
+describe('filtrarYOrdenar (filtros de la lista de usuarios)', () => {
+  const ahora = new Date('2026-11-15T12:00:00-03:00');
+  const usuarios = [
+    { nombre: 'Zoe', rol: 'EMPLEADO', estado: 'ACTIVO', salaId: CENTRO_A },
+    { nombre: 'Ana', rol: 'EMPLEADO', estado: 'SUSPENDIDO', salaId: CENTRO_B },
+    { nombre: 'Beto', rol: 'ADMIN', estado: 'ACTIVO' },
+    { nombre: 'Caro', rol: 'REPRESENTANTE', estado: 'ACTIVO', salaId: CENTRO_A,
+      bloqueadoHasta: new Date('2026-11-15T12:10:00-03:00') },
+  ];
+  const nombres = (lista) => lista.map((u) => u.nombre);
+
+  test('ordena por rol (de plataforma a centro) y después por nombre', () => {
+    expect(nombres(filtrarYOrdenar(usuarios, {}, ahora))).toEqual(['Beto', 'Caro', 'Ana', 'Zoe']);
+  });
+
+  test('filtra por rol, por estado y por centro', () => {
+    expect(nombres(filtrarYOrdenar(usuarios, { rol: 'EMPLEADO' }, ahora))).toEqual(['Ana', 'Zoe']);
+    expect(nombres(filtrarYOrdenar(usuarios, { estado: 'SUSPENDIDO' }, ahora))).toEqual(['Ana']);
+    expect(nombres(filtrarYOrdenar(usuarios, { salaId: CENTRO_A }, ahora))).toEqual(['Caro', 'Zoe']);
+  });
+
+  test('BLOQUEADO son los que tienen un bloqueo por intentos todavía vigente', () => {
+    expect(nombres(filtrarYOrdenar(usuarios, { estado: 'BLOQUEADO' }, ahora))).toEqual(['Caro']);
   });
 });

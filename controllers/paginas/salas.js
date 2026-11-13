@@ -5,6 +5,11 @@ import { volver, volverConError, enriquecerEvento } from './comunes.js';
 
 async function listar(req, res, next) {
   try {
+    // El personal de un centro trabaja en su centro: va directo a su sala ("Mi centro").
+    // La lista de las 25 salas es para el ADMIN y el AUDITOR
+    if (['EMPLEADO', 'REPRESENTANTE'].includes(req.usuario.rol)) {
+      return res.redirect('/panel/salas/' + req.usuario.salaId);
+    }
     const busqueda = req.query.q ? String(req.query.q).trim() : '';
     let salas = await salasModel.getAllSalas();
     let sinResultado = false;

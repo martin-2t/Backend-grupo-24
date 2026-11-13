@@ -1,15 +1,16 @@
-// Login y registro por API (JSON). Se busca el usuario por email, se compara el hash de la
-// contraseña y, si es correcta, se firma un JWT (JWS, HS256) que se envía en una cookie
-// httpOnly y también en el cuerpo de la respuesta (para probar con Authorization: Bearer).
+// Login y registro por API (JSON). El login pasa por Passport (estrategia local, ver
+// config/passport.js) y, si las credenciales son correctas, se firma un JWT (JWS, HS256) que se
+// envía en una cookie httpOnly y también en el cuerpo de la respuesta (para probar con
+// Authorization: Bearer).
 import * as usuariosModel from '../../models/usuarios.js';
-import * as clientesModel from '../../models/clientes.js';
+import * as entradasModel from '../../models/entradas.js';
 import { generarToken, guardarCookie, borrarCookie } from '../../config/jwt.js';
+import { autenticarCredenciales } from '../../config/passport.js';
 
 // POST /auth/login  { email, password }
 async function login(req, res, next) {
   try {
-    const { email, password } = req.body;
-    const resultado = await usuariosModel.iniciarSesion(email, password);
+    const resultado = await autenticarCredenciales(req, res);
     if (resultado.error) {
       return res.status(resultado.status).json({ error: resultado.error });
     }
@@ -55,7 +56,8 @@ function yo(req, res) {
 // GET /auth/mis-entradas: las entradas del cliente logueado
 async function misEntradas(req, res, next) {
   try {
-    res.status(200).json(await clientesModel.entradasDelCliente(req.usuario.clienteId));
+    //Solo sus entradas reales: las compras en curso o no concretadas no son entradas para él
+    res.status(200).json(await entradasModel.entradasVisiblesDelCliente(req.usuario.clienteId));
   } catch (error) {
     next(error);
   }

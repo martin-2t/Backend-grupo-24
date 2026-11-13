@@ -3,7 +3,7 @@
     "_id": "5a1e00000000000000000001",
     "nombre": "Noche de Jazz en Flores",
     "descripcion": "Ciclo de jazz independiente con bandas locales",
-    "fecha": "2026-10-05T21:00:00",
+    "fechaRelativa": { "dias": 20, "hora": "21:00" },
     "salaId": "5a1a00000000000000000001",
     "precio": 8500,
     "estado": "PROGRAMADO"
@@ -12,7 +12,7 @@
     "_id": "5a1e00000000000000000002",
     "nombre": "Rock Under en La Usina",
     "descripcion": "Festival de bandas emergentes de rock",
-    "fecha": "2026-11-14T20:00:00",
+    "fechaRelativa": { "dias": 3, "hora": "20:00" },
     "salaId": "5a1a00000000000000000002",
     "precio": 12000,
     "estado": "PROGRAMADO"

@@ -46,7 +46,9 @@ async function detalle(req, res, next) {
     const cliente = await clientesModel.getById(req.params.id);
     if (!cliente) return next();
 
-    const entradas = await clientesModel.entradasDelCliente(cliente.id);
+    // Los datos del cliente son de toda la red, pero sus entradas solo las de este centro
+    // (si quien mira es personal de un centro)
+    const entradas = await entradasModel.entradasParaUsuario(req.usuario, await clientesModel.entradasDelCliente(cliente.id));
     // enriquecerEntrada puede ser async: Promise.all espera a que terminen todas
     const enriquecidas = await Promise.all(entradas.map(enriquecerEntrada));
     const { vigentes } = await entradasModel.contarPorEstado(entradas);

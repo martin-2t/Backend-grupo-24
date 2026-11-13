@@ -6,7 +6,7 @@ block content
       h2= 'Entrada #' + entrada.id
       p.subtitulo
         span.badge(class=entrada.estado)= entrada.estado
-    if !soloLectura
+    if operaBoleteria
       .acciones
         if entrada.estado === 'RESERVADA'
           form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/confirmar")
@@ -62,7 +62,7 @@ block content
         if puedeValidar && entrada.estado === 'VALIDA'
           a.btn.secundario(href="/panel/checkin/" + entrada.codigo) Simular lectura del QR
 
-  if !soloLectura
+  if operaBoleteria
     h3 Corregir precio
     form.simple(method="POST" action="/panel/entradas/" + entrada.id + "/precio")
       label(for="precio") Precio
@@ -70,8 +70,10 @@ block content
       .barra
         button.btn.editar(type="submit") Guardar precio
 
+  //- Borrado físico: mantenimiento de datos de la plataforma, solo el ADMIN
+  if usuario.rol === 'ADMIN'
     h3 Eliminar
-    p.nota Eliminar borra el registro físicamente. Para liberar el lugar conservando el historial, usá Cancelar.
+    p.nota Eliminar borra el registro físicamente y no queda historial. Es para corregir datos; las anulaciones de boletería las hace el personal del centro con Cancelar.
     form.enlinea(method="POST" action="/panel/entradas/" + entrada.id + "/eliminar" onsubmit="return confirm('¿Eliminar definitivamente esta entrada?')")
       button.btn.peligro(type="submit") Eliminar entrada
 

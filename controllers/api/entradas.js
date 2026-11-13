@@ -9,7 +9,9 @@ import * as clientesModel from '../../models/clientes.js';
 
 async function getAllEntradas(req, res, next) {
   try {
-    res.status(200).json(await entradasModel.getAllEntradas());
+    //El personal ve solo las de su centro, y las compras web en curso o no concretadas solo
+    //las ve el negocio (ADMIN y AUDITOR)
+    res.status(200).json(await entradasModel.entradasParaUsuario(req.usuario, await entradasModel.getAllEntradas()));
   } catch (error) {
     next(error);
   }

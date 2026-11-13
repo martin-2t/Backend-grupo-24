@@ -6,10 +6,16 @@
 import * as eventosModel from '../../models/eventos.js';
 import * as salasModel from '../../models/salas.js';
 
-// READ | Todos los eventos
+// READ | Todos los eventos. Filtros opcionales por query string:
+// ?desde=AAAA-MM-DD&hasta=AAAA-MM-DD&salaId=<id de la sala>
 async function listar(req, res, next) {
   try {
-    res.status(200).json(await eventosModel.getAllEventos());
+    const { desde, hasta, salaId } = req.query;
+    const error = eventosModel.validarFiltros({ desde, hasta, salaId });
+    if (error) {
+      return res.status(400).json({ error });
+    }
+    res.status(200).json(await eventosModel.getEventosFiltrados({ desde, hasta, salaId }));
   } catch (error) {
     next(error);
   }
