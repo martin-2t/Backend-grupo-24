@@ -46,7 +46,7 @@ block content
           tr
             td
               a(href="/panel/eventos/" + evento.id)= evento.nombre
-            td= new Date(evento.fecha).toLocaleString('es-AR')
+            td= new Date(evento.fecha).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hourCycle: 'h23' })
             td= evento.disponibles + ' / ' + evento.capacidad
             td
               span.badge(class=evento.estado)= evento.estado

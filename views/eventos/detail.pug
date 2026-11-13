@@ -22,7 +22,7 @@ block content
       h2= evento.nombre
       p.subtitulo
         span.badge(class=evento.estado)= evento.estado
-        span  · #{evento.sala} · #{new Date(evento.fecha).toLocaleString('es-AR')}
+        span  · #{evento.sala} · #{new Date(evento.fecha).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hourCycle: 'h23' })}
     .acciones
       if puedeGestionar
         a.btn.editar(href="/panel/eventos/" + evento.id + "/editar") Editar
