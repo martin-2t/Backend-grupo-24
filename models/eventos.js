@@ -133,17 +133,23 @@ async function finalizarEvento(id) {
 
 // Entradas que se arrastrarían si se cancelara este evento. La usan tanto el aviso
 // de confirmación como la cancelación misma, para que digan siempre lo mismo.
+// Solo cuenta entradas reales: las compras web en curso (RETENIDA) no son entradas todavía.
 async function entradasQueSeCancelan(id) {
   const entradas = await entradasModel.getEntradasByEvento(id);
-  // Las canceladas y las reservas vencidas ya no ocupan lugar: no hay nada que arrastrar
-  return entradas.filter((e) => !['CANCELADA', 'VENCIDA'].includes(e.estado));
+  // Las canceladas y las compras no concretadas ya no ocupan lugar: no hay nada que arrastrar
+  return entradas.filter((e) => !['CANCELADA', 'VENCIDA', 'RETENIDA'].includes(e.estado));
 }
 
 // DELETE lógico | Cancela el evento y arrastra sus entradas: no puede quedar una
-// entrada válida de algo que no va a suceder.
+// entrada válida de algo que no va a suceder. Las compras web en curso no se cancelan:
+// pasan a VENCIDA (compra no concretada), porque nunca llegaron a ser entradas
 async function cancelarEvento(id) {
   const aCancelar = await entradasQueSeCancelan(id);
-  await Promise.all(aCancelar.map((e) => entradasModel.updateEntradaById(e.id, { estado: 'CANCELADA' })));
+  const enCurso = (await entradasModel.getEntradasByEvento(id)).filter((e) => e.estado === 'RETENIDA');
+  await Promise.all([
+    ...aCancelar.map((e) => entradasModel.updateEntradaById(e.id, { estado: 'CANCELADA' })),
+    ...enCurso.map((e) => entradasModel.updateEntradaById(e.id, { estado: 'VENCIDA' })),
+  ]);
   return updateEventoById(id, { estado: 'CANCELADO' });
 }
 

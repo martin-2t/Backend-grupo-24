@@ -68,6 +68,17 @@ async function crear(req, res, next) {
   }
 }
 
+// Para el CLIENTE: hasta cuántas entradas puede comprar (MAXIMO_POR_COMPRA, o menos si quedan
+// menos lugares), o por qué no puede comprar. El servidor vuelve a validar todo al comprar
+function opcionesDeCompra(evento) {
+  if (evento.estado !== 'PROGRAMADO' || evento.salaEstado !== 'ACTIVA') {
+    return { motivo: 'La venta de entradas para este evento está cerrada.' };
+  }
+  if (entradasModel.eventoYaPaso(evento.fecha)) return { motivo: 'Este evento ya pasó.' };
+  if (evento.disponibles <= 0) return { motivo: 'Agotado' };
+  return { maximo: Math.min(entradasModel.MAXIMO_POR_COMPRA, evento.disponibles) };
+}
+
 async function detalle(req, res, next) {
   try {
     const evento = await eventosModel.getEventoById(req.params.id);
@@ -80,11 +91,15 @@ async function detalle(req, res, next) {
       ['ADMIN', 'AUDITOR'].includes(rol) ||
       (['EMPLEADO', 'REPRESENTANTE'].includes(rol) && String(evento.salaId) === String(salaId));
 
+    const enriquecido = await enriquecerEvento(evento);
     res.render('eventos/detail', {
       titulo: evento.nombre,
-      evento: await enriquecerEvento(evento),
+      evento: enriquecido,
+      compra: rol === 'CLIENTE' ? opcionesDeCompra(enriquecido) : null,
       entradas: puedeVerEntradas
-        ? await Promise.all((await entradasModel.getEntradasByEvento(evento.id)).map(enriquecerEntrada))
+        ? await Promise.all(
+          entradasModel.visiblesPara(rol, await entradasModel.getEntradasByEvento(evento.id)).map(enriquecerEntrada)
+        )
         : [],
       aArrastrar: (await eventosModel.entradasQueSeCancelan(evento.id)).length,
     });

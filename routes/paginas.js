@@ -24,6 +24,7 @@ import * as consultas from '../controllers/paginas/consultas.js';
 import * as auth from '../controllers/paginas/auth.js';
 import * as usuarios from '../controllers/paginas/usuarios.js';
 import * as checkin from '../controllers/paginas/checkin.js';
+import * as cliente from '../controllers/paginas/cliente.js';
 
 const router = express.Router();
 
@@ -117,5 +118,15 @@ const puerta = permitirPagina('EMPLEADO', 'REPRESENTANTE');
 router.get('/checkin', puerta, checkin.buscar);
 router.get('/checkin/:codigo', puerta, soloSuCentroPagina(salaDeLaEntradaPorCodigo), checkin.mostrar);
 router.post('/checkin/:codigo', puerta, soloSuCentroPagina(salaDeLaEntradaPorCodigo), checkin.validar);
+
+// Compra web y "Mis entradas": solo el CLIENTE, y cada uno sobre lo suyo (lo controla cada
+// controlador: una compra o entrada ajena responde "no encontrada")
+const soloCliente = permitirPagina('CLIENTE');
+router.post('/compras', soloCliente, cliente.crearCompra);
+router.get('/compras/:compraId', soloCliente, cliente.mostrarCompra);
+router.post('/compras/:compraId/pagar', soloCliente, cliente.pagarCompra);
+router.post('/compras/:compraId/cancelar', soloCliente, cliente.cancelarCompra);
+router.get('/mis-entradas', soloCliente, cliente.misEntradas);
+router.get('/mis-entradas/:id', soloCliente, cliente.miEntrada);
 
 export default router;

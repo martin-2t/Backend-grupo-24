@@ -1,0 +1,26 @@
+extends ../layout
+
+//- Una entrada del cliente. Si todavía sirve, el QR grande para mostrar en la puerta
+block content
+  - const fecha = (f) => new Date(f).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+
+  h2= evento ? evento.nombre : 'Mi entrada'
+  if evento
+    p.subtitulo= fecha(evento.fecha) + ' · ' + evento.sala
+
+  if item.qr
+    .qr-grande
+      img(src=item.qr alt="Código QR de la entrada " + item.entrada.codigo width="280" height="280")
+      code.codigo= item.entrada.codigo
+      p.nota Mostrá este código en la puerta. El personal lo escanea y valida tu ingreso.
+  else if item.situacion === 'USADA'
+    p.aviso-entrada= 'Ya ingresaste con esta entrada el ' + fecha(item.entrada.usadaEn) + '.'
+  else if item.situacion === 'NO_UTILIZADA'
+    p.aviso-entrada El evento ya pasó y esta entrada no se usó para ingresar.
+  else if item.situacion === 'EVENTO_CANCELADO'
+    p.aviso-entrada El evento se canceló, así que esta entrada ya no sirve para ingresar.
+  else
+    p.aviso-entrada Esta entrada se anuló y ya no sirve para ingresar.
+
+  p.volver
+    a(href="/panel/mis-entradas") ← Volver a Mis entradas

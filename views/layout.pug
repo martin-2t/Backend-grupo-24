@@ -24,6 +24,8 @@ html(lang="es")
           a(href="/panel/usuarios") Usuarios
         if usuario && ['EMPLEADO', 'REPRESENTANTE'].includes(usuario.rol)
           a(href="/panel/checkin") Ingreso
+        if usuario && usuario.rol === 'CLIENTE'
+          a(href="/panel/mis-entradas") Mis entradas
         if usuario
           span #{usuario.nombre} (#{usuario.rol})
           form(method="POST" action="/panel/logout" style="display:inline")

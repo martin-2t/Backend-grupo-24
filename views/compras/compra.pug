@@ -1,0 +1,55 @@
+extends ../layout
+
+//- La compra web en sus tres momentos: en curso (pagar o cancelar), pagada (las entradas con
+//- su QR) o no concretada (venció el tiempo o se canceló)
+block content
+  - const fecha = (f) => new Date(f).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+
+  if compra.estado === 'EN_CURSO'
+    h2 Confirmá tu compra
+    .panel-dato.resumen-compra
+      table
+        tbody
+          tr
+            th Evento
+            td= evento ? evento.nombre : 'Evento eliminado'
+          tr
+            th Fecha
+            td= evento ? fecha(evento.fecha) : ''
+          tr
+            th Sala
+            td= evento ? evento.sala : ''
+          tr
+            th Entradas
+            td= compra.cantidad + ' × $' + compra.precio
+          tr
+            th Total
+            td.total= '$' + compra.total
+    p.reloj-compra= 'Te guardamos los lugares hasta las ' + venceA + ' (' + minutos + ' minutos). Si no pagás antes, se liberan.'
+    p.nota El pago es simulado: no se cobra nada.
+    .barra
+      form.enlinea(method="POST" action="/panel/compras/" + compra.compraId + "/pagar")
+        button.btn(type="submit")= 'Confirmar y pagar $' + compra.total
+      form.enlinea(method="POST" action="/panel/compras/" + compra.compraId + "/cancelar")
+        button.btn.baja(type="submit") Cancelar compra
+
+  else if compra.estado === 'PAGADA'
+    h2 ¡Listo! Estas son tus entradas
+    p.subtitulo= (evento ? evento.nombre + ' · ' + fecha(evento.fecha) + ' · ' + evento.sala : '')
+    p.nota Mostrá el QR de cada entrada en la puerta. También las encontrás siempre en "Mis entradas".
+    .entradas-compradas
+      each item, i in entradas
+        .entrada-qr
+          div.entrada-numero= 'Entrada ' + (i + 1) + ' de ' + entradas.length
+          img(src=item.qr alt="Código QR de la entrada " + item.entrada.codigo width="200" height="200")
+          code.codigo= item.entrada.codigo
+    .barra
+      a.btn(href="/panel/mis-entradas") Ir a Mis entradas
+
+  else
+    h2 La compra no se concretó
+    p Pasó el tiempo para pagar o la compra se canceló, así que los lugares se liberaron y no se cobró nada.
+    .barra
+      if evento
+        a.btn(href="/panel/eventos/" + evento.id) Volver al evento
+      a.btn.secundario(href="/panel/eventos") Ver la cartelera

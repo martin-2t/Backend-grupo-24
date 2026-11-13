@@ -1,0 +1,53 @@
+extends ../layout
+
+//- Solo entradas reales: las compras en curso o que no se concretaron no aparecen.
+//- Próximas: con su QR. Historial: usadas, canceladas y las que no se usaron.
+block content
+  - const fecha = (f) => new Date(f).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+  - const SITUACION = { USADA: 'Usada', CANCELADA: 'Cancelada', EVENTO_CANCELADO: 'Evento cancelado', NO_UTILIZADA: 'No utilizada' }
+
+  h2 Mis entradas
+
+  h3 Próximas
+  if proximas.length === 0
+    p.vacio
+      | No tenés entradas para próximos eventos.
+      |
+      a(href="/panel/eventos") Ver la cartelera
+  else
+    .mis-entradas
+      each item in proximas
+        a.mi-entrada(href="/panel/mis-entradas/" + item.entrada.id)
+          img(src=item.qr alt="Código QR de la entrada" width="110" height="110")
+          div
+            strong= item.evento.nombre
+            div= fecha(item.evento.fecha)
+            div.nota Tocá para ver el QR grande
+
+  h3 Historial
+  if historial.length === 0
+    p.vacio Todavía no tenés entradas pasadas.
+  else
+    table
+      thead
+        tr
+          th Evento
+          th Fecha
+          th Estado
+          th Detalle
+      tbody
+        each item in historial
+          tr
+            td= item.evento ? item.evento.nombre : 'Evento eliminado'
+            td= item.evento ? fecha(item.evento.fecha) : ''
+            td
+              span.badge(class='SIT-' + item.situacion)= SITUACION[item.situacion]
+            td
+              if item.situacion === 'USADA'
+                = 'Ingresaste el ' + fecha(item.entrada.usadaEn)
+              else if item.situacion === 'NO_UTILIZADA'
+                | El evento ya pasó y esta entrada no se usó para ingresar.
+              else if item.situacion === 'EVENTO_CANCELADO'
+                | El evento se canceló.
+              else
+                | La entrada se anuló.

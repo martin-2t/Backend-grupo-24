@@ -55,6 +55,22 @@ block content
       h3 Descripción
       p= evento.descripcion
 
+  //- Compra web: solo el CLIENTE. "compra" lo arma el controller (cuántas puede o por qué no)
+  if compra
+    .panel-dato.compra-evento
+      h3 Comprar entradas
+      if compra.maximo
+        form.compra-form(method="POST" action="/panel/compras")
+          input(type="hidden" name="eventoId" value=evento.id)
+          label(for="cantidad") Cantidad
+          select#cantidad(name="cantidad")
+            - for (var n = 1; n <= compra.maximo; n++)
+              option(value=n)= n
+          button.btn(type="submit") Comprar
+        p.nota= 'Hasta ' + compra.maximo + ' entradas por compra, a $' + evento.precio + ' cada una. Al continuar te guardamos los lugares unos minutos mientras pagás.'
+      else
+        p.compra-cerrada= compra.motivo
+
   //- Las entradas muestran el nombre de cada comprador: solo las ve el personal de este centro
   if puedeOperar
     h3 Entradas de este evento
