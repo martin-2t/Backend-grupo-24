@@ -25,7 +25,8 @@ beforeAll(async () => {
   });
   const admin = await crearUsuarioConToken({ rol: 'ADMIN' });
   const auditor = await crearUsuarioConToken({ rol: 'AUDITOR' });
-  datos = { sala, evento, cliente, entrada, admin, auditor };
+  const empleado = await crearUsuarioConToken({ rol: 'EMPLEADO', salaId: sala.id });
+  datos = { sala, evento, cliente, entrada, admin, auditor, empleado };
 });
 
 describe('AUDITOR en la API', () => {
@@ -79,7 +80,7 @@ describe('AUDITOR en la API', () => {
 describe('AUDITOR en el panel', () => {
   // El panel lee el token de la cookie, no del header Authorization
   const comoAuditor = (peticion) => peticion.set('Cookie', `token=${datos.auditor.token}`);
-  const comoAdmin = (peticion) => peticion.set('Cookie', `token=${datos.admin.token}`);
+  const comoEmpleado = (peticion) => peticion.set('Cookie', `token=${datos.empleado.token}`);
 
   test('ve la lista de clientes, sin los botones de acción', async () => {
     const respuesta = await comoAuditor(request(app).get('/panel/clientes'));
@@ -90,8 +91,8 @@ describe('AUDITOR en el panel', () => {
     expect(respuesta.text).not.toContain('Eliminar');
   });
 
-  test('el ADMIN, en la misma página, sí ve los botones (control del test anterior)', async () => {
-    const respuesta = await comoAdmin(request(app).get('/panel/clientes'));
+  test('el EMPLEADO, en la misma página, sí ve los botones (control del test anterior)', async () => {
+    const respuesta = await comoEmpleado(request(app).get('/panel/clientes'));
     expect(respuesta.text).toContain('Nuevo cliente');
   });
 

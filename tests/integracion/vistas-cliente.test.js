@@ -78,8 +78,11 @@ describe('Salas', () => {
     expect((await como(d.cliente, '/panel')).text).not.toContain('href="/panel/salas"');
   });
 
-  test('el personal sigue viendo las salas', async () => {
-    expect((await como(d.empleado, '/panel/salas')).status).toBe(200);
+  test('el personal va directo a la sala de su centro ("Mi centro")', async () => {
+    const lista = await como(d.empleado, '/panel/salas');
+    expect(lista.status).toBe(302);
+    expect(lista.headers.location).toBe(`/panel/salas/${d.sala.id}`);
+    expect((await como(d.empleado, lista.headers.location)).status).toBe(200);
   });
 });
 

@@ -114,7 +114,7 @@ describe('Una entrada usada', () => {
     expect((await Evento.findById(d.evento.id)).lugaresOcupados).toBe(1);
     const cancelacion = await request(app)
       .put(`/entradas/${d.entrada.id}/cancelar`)
-      .set('Authorization', `Bearer ${d.admin.token}`);
+      .set('Authorization', `Bearer ${d.empleadoA.token}`);
     expect(cancelacion.status).toBe(400);
     expect(cancelacion.body.error).toMatch(/ya se usó/);
   });

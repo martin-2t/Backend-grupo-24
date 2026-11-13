@@ -229,7 +229,7 @@ describe('Reserva de boletería', () => {
   test('ya no vence: queda RESERVADA hasta que el personal la confirme o la cancele', async () => {
     const reserva = await request(app)
       .post('/entradas/reservar')
-      .set('Authorization', `Bearer ${d.admin.token}`)
+      .set('Authorization', `Bearer ${d.empleado.token}`)
       .send({ eventoId: d.evento.id, clienteId: String(d.juan.usuario.clienteId) });
 
     expect(reserva.status).toBe(201);
