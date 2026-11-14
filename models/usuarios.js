@@ -46,13 +46,13 @@ const usuarioSchema = new mongoose.Schema(
       enum: { values: ROLES, message: 'El rol debe ser ADMIN, REPRESENTANTE, EMPLEADO, CLIENTE o AUDITOR.' },
       required: [true, 'El rol es obligatorio.'],
     },
-    // El centro donde trabaja: solo lo tienen (y lo necesitan) los empleados
+    // El centro donde trabaja: lo tienen (y lo necesitan) los roles de centro, EMPLEADO y REPRESENTANTE
     salaId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Sala',
       required: [
-        function () { return this.rol === 'EMPLEADO'; },
-        'Un empleado debe tener un centro asignado (salaId).',
+        function () { return ROLES_DE_CENTRO.includes(this.rol); },
+        'Un empleado o representante debe tener un centro asignado (salaId).',
       ],
     },
     // Persona vs usuario: el cliente que compra por la web tiene además su ficha en "clientes"
@@ -143,8 +143,8 @@ function chequearPassword(password) {
 
 // "Existencia de registros relacionados": el centro y la ficha de cliente deben existir
 async function chequearReferencias({ rol, salaId, clienteId }) {
-  if (rol === 'EMPLEADO' && salaId && !(await salasModel.getSalaById(salaId))) {
-    return 'La sala indicada como centro del empleado no existe.';
+  if (ROLES_DE_CENTRO.includes(rol) && salaId && !(await salasModel.getSalaById(salaId))) {
+    return 'La sala indicada como centro del usuario no existe.';
   }
   if (rol === 'CLIENTE' && clienteId && !(await clientesModel.getById(clienteId))) {
     return 'La ficha de cliente indicada no existe.';

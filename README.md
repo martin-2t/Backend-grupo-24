@@ -29,6 +29,7 @@ estudio N° 3: *"Eventos y Entradas - Urbana Cult"*.
 - [Usuarios, roles y login](#usuarios-roles-y-login)
 - [Panel web](#panel-web)
 - [Cómo correrlo en local](#cómo-correrlo-en-local)
+- [Tests](#tests)
 - [Documentación adicional](#documentación-adicional)
 - [Roadmap](#roadmap)
 
@@ -467,6 +468,34 @@ Atlas. El archivo `.env` no se sube al repositorio.
 En el equipo, cada integrante desarrolla sobre **su propia base** dentro del mismo cluster de
 Atlas (por ejemplo, `urbana-cult-martin`), así `npm run seed` nunca borra datos ajenos. La base
 `urbana-cult` es la compartida, para integrar y para las pruebas finales.
+
+## Tests
+
+Los tests usan **Jest** y **Supertest**, y corren contra un MongoDB en memoria
+(`mongodb-memory-server`): no necesitan `.env` ni tocan ninguna base real. La primera vez que se
+corren se descarga el binario de MongoDB, así que tardan un poco más.
+
+```bash
+npm test                  # todos los tests
+npm run test:unit         # solo los unitarios
+npm run test:integration  # solo los de integración
+npm run test:coverage     # todos, con el reporte de cobertura (falla si baja del mínimo)
+```
+
+| Carpeta | Qué prueba |
+|---|---|
+| `tests/unitarios` | Reglas puras, sin HTTP: validaciones de entradas, seguridad de contraseñas, gestión de usuarios y middlewares (errores, 404, límite del asistente) |
+| `tests/integracion` | La app entera por HTTP: cada endpoint de la API (`api.*.test.js`), las páginas del panel (`panel.*.test.js`), los permisos por rol, la sobreventa, el check-in, las compras web, el asistente y los errores inesperados |
+| `tests/helpers` | La base en memoria (`db.js`) y las funciones que crean datos de prueba (`datos.js`) |
+
+El asistente no llama a Gemini en los tests: se simula `fetch`, así que no hace falta la API key
+ni se gasta cuota.
+
+**Cobertura mínima.** `npm run test:coverage` mide solo el código de la app (`app.js`, `config`,
+`controllers`, `middleware`, `models` y `routes`) y falla si queda por debajo de **90 % de
+líneas y sentencias, 85 % de ramas y 95 % de funciones**. El reporte detallado, línea por línea,
+queda en `coverage/lcov-report/index.html`. Cada funcionalidad nueva tiene que venir con sus
+tests para no bajar de esos valores.
 
 ## Documentación adicional
 
