@@ -189,6 +189,13 @@ describe('Panel de eventos', () => {
     expect(respuesta.text).toContain('Obra de teatro');
   });
 
+  test('con una sala que no existe vuelve al formulario con el motivo, no con "otro centro"', async () => {
+    const respuesta = await enviar(d.representante, '/panel/eventos/nuevo', form({ salaId: ID_INEXISTENTE }));
+
+    expect(respuesta.status).toBe(400);
+    expect(respuesta.text).toContain('Elegí una sala existente.');
+  });
+
   test('un filtro de fecha inválido avisa y muestra todos los eventos', async () => {
     const pagina = await ver(d.empleado, '/panel/eventos?desde=ayer');
 

@@ -74,6 +74,17 @@ describe('Alta', () => {
     expect(respuesta.body.error).toContain(motivo);
   });
 
+  test('una sala que no existe responde 404, no un 403 de "otro centro"', async () => {
+    const respuesta = await api(d.representante, 'post', '/eventos', nuevo({ salaId: ID_INEXISTENTE }));
+
+    expect(respuesta.status).toBe(404);
+    expect(respuesta.body.error).toBe('La sala indicada no existe');
+  });
+
+  test('una sala que existe pero es de otro centro sigue respondiendo 403', async () => {
+    expect((await api(d.representante, 'post', '/eventos', nuevo({ salaId: d.otra.id }))).status).toBe(403);
+  });
+
   test('sin sala responde 400', async () => {
     const respuesta = await api(d.representante, 'post', '/eventos', nuevo({ salaId: undefined }));
 

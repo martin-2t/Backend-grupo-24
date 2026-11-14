@@ -45,9 +45,11 @@ async function salaDelParametro(req) {
   return (await salasModel.getSalaById(req.params.id)) ? [req.params.id] : null;
 }
 
-// POST /eventos: la sala viene en el body. Sin salaId, el controller responde 400.
+// POST /eventos: la sala viene en el body. Sin salaId, el controller responde 400; con una sala
+// que no existe, dejamos pasar (null) para que el controller responda 404 y no un 403 engañoso
 async function salaDelBody(req) {
-  return req.body.salaId ? [req.body.salaId] : [];
+  if (!req.body.salaId) return [];
+  return (await salasModel.getSalaById(req.body.salaId)) ? [req.body.salaId] : null;
 }
 
 // PUT /eventos/:id (y finalizar/cancelar): la sala actual del evento y, si lo mudan, la nueva
