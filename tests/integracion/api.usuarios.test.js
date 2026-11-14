@@ -76,6 +76,17 @@ describe('Alta', () => {
     expect(respuesta.body.error).toContain('no existe');
   });
 
+  test('un REPRESENTANTE también necesita un centro, y que exista', async () => {
+    const representante = (cambios) => nuevoEmpleado({ rol: 'REPRESENTANTE', email: 'gerente@urbanacult.com', ...cambios });
+
+    const sinCentro = await api(d.admin, 'post', '/usuarios', representante({ salaId: undefined }));
+    expect(sinCentro.status).toBe(400);
+    expect(sinCentro.body.error).toContain('debe tener un centro asignado');
+
+    expect((await api(d.admin, 'post', '/usuarios', representante({ salaId: ID_INEXISTENTE }))).status).toBe(404);
+    expect((await api(d.admin, 'post', '/usuarios', representante())).status).toBe(201);
+  });
+
   test('un cliente con una ficha que no existe responde 404', async () => {
     const respuesta = await api(d.admin, 'post', '/usuarios', nuevoEmpleado({ rol: 'CLIENTE', salaId: undefined, clienteId: ID_INEXISTENTE }));
 
@@ -120,6 +131,13 @@ describe('Edición', () => {
 
   test('mudarlo a un centro que no existe responde 404', async () => {
     expect((await api(d.admin, 'put', ruta(), { salaId: ID_INEXISTENTE })).status).toBe(404);
+  });
+
+  test('pasar a REPRESENTANTE a alguien sin centro responde 400', async () => {
+    const respuesta = await api(d.admin, 'put', `/usuarios/${d.auditor.usuario.id}`, { rol: 'REPRESENTANTE' });
+
+    expect(respuesta.status).toBe(400);
+    expect((await usuariosModel.getById(d.auditor.usuario.id)).rol).toBe('AUDITOR');
   });
 
   test('un estado inválido lo rechaza el Schema (400); SUSPENDIDO deja sin acceso', async () => {

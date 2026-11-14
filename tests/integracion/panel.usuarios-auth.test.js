@@ -85,6 +85,14 @@ describe('Alta de personal', () => {
     expect(inexistente.status).toBe(404);
   });
 
+  test('el ADMIN no puede crear un REPRESENTANTE con un centro que no existe', async () => {
+    const respuesta = await enviar(d.admin, '/panel/usuarios/nuevo', personal({ rol: 'REPRESENTANTE', salaId: ID_INEXISTENTE }));
+
+    expect(respuesta.status).toBe(404);
+    expect(respuesta.text).toContain('La sala indicada como centro del usuario no existe.');
+    expect(await usuariosModel.getByEmail('marta@urbanacult.com')).toBeNull();
+  });
+
   test('el AUDITOR ve la lista de usuarios pero no puede dar de alta', async () => {
     expect((await ver(d.auditor, '/panel/usuarios')).status).toBe(200);
     expect((await ver(d.auditor, '/panel/usuarios/nuevo')).headers.location).toMatch(/^\/panel\?error=/);
